@@ -1,11 +1,12 @@
 (() => {
   'use strict';
 
+  const LOG_PREFIX = '[Echo360 Captions]';
   const GRID_SELECTOR = '.ReactVirtualized__Grid';
-  const ACTIVE_ICON_SELECTOR = 'svg[aria-label="status filled"]';
+  const ACTIVE_ICON_SELECTOR = '[data-test-name="status-filled"], svg[aria-label="status-filled"]';
   const SPAN_SELECTOR = 'dd span';
-  const CONTROLS_SELECTOR = '[aria-label="Media Controls"]';
-  const PLAYER_SELECTOR = '[aria-label="Media Player"]';
+  const FULLSCREEN_BTN_SELECTOR = '#fullscreen-toggle-btn';
+  const VIDEO_SELECTOR = 'video';
   const BTN_CLASS = 'echo360-captions-toggle';
   const OVERLAY_CLASS = 'echo360-captions-overlay';
 
@@ -13,9 +14,24 @@
   let lastText = '';
   let overlayEl = null;
   let buttonEl = null;
+  let controlsEl = null;
+  let playerEl = null;
   let gridObserver = null;
   let observedGrid = null;
   let pending = false;
+
+  console.info(`${LOG_PREFIX} content script loaded on ${location.hostname}`);
+
+  function findControlsCluster() {
+    const fs = document.querySelector(FULLSCREEN_BTN_SELECTOR);
+    return fs ? fs.parentElement : null;
+  }
+
+  function findPlayerHost() {
+    const video = document.querySelector(VIDEO_SELECTOR);
+    if (!video) return null;
+    return video.parentElement;
+  }
 
   function findActiveSpan(grid) {
     const icon = grid.querySelector(ACTIVE_ICON_SELECTOR);
@@ -68,21 +84,23 @@
       attributeFilter: ['aria-label'],
       characterData: true,
     });
+    console.info(`${LOG_PREFIX} transcript grid observed`);
     schedule();
   }
 
   function ensureOverlay() {
-    const player = document.querySelector(PLAYER_SELECTOR);
-    if (!player) return;
-    if (overlayEl && player.contains(overlayEl)) return;
-    if (getComputedStyle(player).position === 'static') {
-      player.style.position = 'relative';
+    const host = findPlayerHost();
+    if (!host) return;
+    playerEl = host;
+    if (overlayEl && host.contains(overlayEl)) return;
+    if (getComputedStyle(host).position === 'static') {
+      host.style.position = 'relative';
     }
     overlayEl = document.createElement('div');
     overlayEl.className = OVERLAY_CLASS;
     overlayEl.setAttribute('aria-live', 'polite');
     overlayEl.setAttribute('aria-atomic', 'true');
-    player.appendChild(overlayEl);
+    host.appendChild(overlayEl);
   }
 
   function removeOverlay() {
@@ -111,11 +129,13 @@
   }
 
   function injectButton() {
-    const controls = document.querySelector(CONTROLS_SELECTOR);
-    if (!controls) return;
-    if (buttonEl && controls.contains(buttonEl)) return;
+    const cluster = findControlsCluster();
+    if (!cluster) return;
+    controlsEl = cluster;
+    if (buttonEl && cluster.contains(buttonEl)) return;
     buttonEl = document.createElement('button');
     buttonEl.type = 'button';
+    buttonEl.id = 'echo360-captions-toggle-btn';
     buttonEl.className = BTN_CLASS;
     buttonEl.textContent = 'CC';
     buttonEl.title = 'Toggle transcript captions';
@@ -126,8 +146,14 @@
       event.stopPropagation();
       toggleCaptions();
     });
-    controls.appendChild(buttonEl);
+    const fs = cluster.querySelector(FULLSCREEN_BTN_SELECTOR);
+    if (fs) {
+      cluster.insertBefore(buttonEl, fs);
+    } else {
+      cluster.appendChild(buttonEl);
+    }
     syncButtonState();
+    console.info(`${LOG_PREFIX} CC button injected`);
   }
 
   function bootstrap() {
@@ -143,4 +169,16 @@
   });
 
   bootstrap();
+
+  window.__echo360Captions = {
+    state: () => ({
+      captionsEnabled,
+      controls: controlsEl,
+      player: playerEl,
+      grid: observedGrid,
+      button: buttonEl,
+      overlay: overlayEl,
+    }),
+    forceToggle: toggleCaptions,
+  };
 })();
