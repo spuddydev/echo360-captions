@@ -1,6 +1,6 @@
 {
   "name": "echo360-captions",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Browser extension that turns UWA Echo360 transcripts into on-player closed captions.",
   "license": "MIT",

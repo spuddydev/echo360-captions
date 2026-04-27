@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-04-27
+
+### Changed
+
+- Bumped Firefox strict minimum version to 140 and Android to 142 so the gecko data collection permissions field is accepted without warnings.
+
+## [0.1.0] - 2026-04-27
+
 ### Added
 
 - Closed-caption overlay rendered from the active Echo360 transcript line.
@@ -14,4 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Captions follow the player into and out of fullscreen.
 - Icons at 16, 32, 48, 96 and 128 pixels.
 
-[Unreleased]: https://github.com/spuddydev/echo360-captions/commits/main
+[Unreleased]: https://github.com/spuddydev/echo360-captions/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/spuddydev/echo360-captions/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/spuddydev/echo360-captions/releases/tag/v0.1.0
