@@ -8,6 +8,7 @@
   const FULLSCREEN_BTN_SELECTOR = '#fullscreen-toggle-btn';
   const PLAYER_HOST_SELECTOR = '#player, [aria-label="Media Player"]';
   const VIDEO_FALLBACK_SELECTOR = 'video';
+  const TRANSCRIPTS_TAB_SELECTOR = '#transcripts-tab';
   const BTN_CLASS = 'echo360-captions-toggle';
   const OVERLAY_CLASS = 'echo360-captions-overlay';
 
@@ -20,8 +21,22 @@
   let gridObserver = null;
   let observedGrid = null;
   let pending = false;
+  let transcriptAutoOpened = false;
 
   console.info(`${LOG_PREFIX} content script loaded on ${location.hostname}`);
+
+  function openTranscriptPanel() {
+    if (transcriptAutoOpened) return;
+    const tab = document.querySelector(TRANSCRIPTS_TAB_SELECTOR);
+    if (!tab) return;
+    transcriptAutoOpened = true;
+    if (tab.getAttribute('aria-selected') === 'true') {
+      console.info(`${LOG_PREFIX} transcript panel already open`);
+      return;
+    }
+    tab.click();
+    console.info(`${LOG_PREFIX} transcript panel opened`);
+  }
 
   function findControlsCluster() {
     const fs = document.querySelector(FULLSCREEN_BTN_SELECTOR);
@@ -138,6 +153,8 @@
     captionsEnabled = !captionsEnabled;
     syncButtonState();
     if (captionsEnabled) {
+      transcriptAutoOpened = false;
+      openTranscriptPanel();
       ensureOverlay();
       lastText = '';
       schedule();
@@ -170,6 +187,7 @@
   }
 
   function bootstrap() {
+    openTranscriptPanel();
     injectButton();
     attachGridObserver();
     if (captionsEnabled) ensureOverlay();
