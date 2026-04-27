@@ -1,7 +1,7 @@
 .echo360-captions-toggle {
   appearance: none;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: none;
   border-radius: 3px;
   color: #fff;
   cursor: pointer;
@@ -15,10 +15,13 @@
   vertical-align: middle;
 }
 
-.echo360-captions-toggle:hover,
+.echo360-captions-toggle:hover {
+  color: #ddd;
+}
+
 .echo360-captions-toggle:focus-visible {
-  border-color: #fff;
-  outline: none;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 
 .echo360-captions-toggle.is-active {

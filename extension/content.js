@@ -28,7 +28,18 @@
     return fs ? fs.parentElement : null;
   }
 
+  function getFullscreenElement() {
+    return (
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      null
+    );
+  }
+
   function findPlayerHost() {
+    const fs = getFullscreenElement();
+    if (fs && fs.querySelector(VIDEO_FALLBACK_SELECTOR)) return fs;
     const player = document.querySelector(PLAYER_HOST_SELECTOR);
     if (player) return player;
     const video = document.querySelector(VIDEO_FALLBACK_SELECTOR);
@@ -94,15 +105,20 @@
     const host = findPlayerHost();
     if (!host) return;
     playerEl = host;
-    if (overlayEl && host.contains(overlayEl)) return;
     if (getComputedStyle(host).position === 'static') {
       host.style.position = 'relative';
     }
-    overlayEl = document.createElement('div');
-    overlayEl.className = OVERLAY_CLASS;
-    overlayEl.setAttribute('aria-live', 'polite');
-    overlayEl.setAttribute('aria-atomic', 'true');
-    host.appendChild(overlayEl);
+    if (!overlayEl) {
+      overlayEl = document.createElement('div');
+      overlayEl.className = OVERLAY_CLASS;
+      overlayEl.setAttribute('aria-live', 'polite');
+      overlayEl.setAttribute('aria-atomic', 'true');
+    }
+    if (overlayEl.parentElement !== host) {
+      host.appendChild(overlayEl);
+    } else if (host.lastElementChild !== overlayEl) {
+      host.appendChild(overlayEl);
+    }
   }
 
   function removeOverlay() {
@@ -164,6 +180,10 @@
     childList: true,
     subtree: true,
   });
+
+  document.addEventListener('fullscreenchange', bootstrap);
+  document.addEventListener('webkitfullscreenchange', bootstrap);
+  document.addEventListener('mozfullscreenchange', bootstrap);
 
   bootstrap();
 
