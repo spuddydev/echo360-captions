@@ -1,92 +1,43 @@
 # Echo360 Captions
 
-A small Firefox and Chrome extension that turns UWA's Echo360 lecture transcripts into on-player closed captions.
+Turns Echo360 lecture transcripts into on-player closed captions.
 
-UWA's Echo360 player exposes a transcript panel but does not surface those transcripts as captions on the video itself. This extension adds a `CC` button to the Echo360 controls that overlays the active transcript line on top of the player, so you can read along without splitting your attention between the panel and the video.
+Echo360 shows transcripts in a side panel but does not surface them as captions on the video. This extension adds a small `CC` button to the player. Toggle it on and the active transcript line appears as a caption overlay on top of the video, exactly where you would expect captions to sit.
 
-## What it does
+## Install
 
-- Activates only on `*.echo360.net.au`.
-- Watches the transcript grid for the currently spoken line.
-- Adds a `CC` toggle at the start of the player's right-hand control cluster.
-- When toggled on, renders the active transcript text as an overlay inside the player.
+<!-- TODO: replace with the AMO and Chrome Web Store links once published. -->
+
+- **Firefox**: _coming soon._
+- **Chrome / Edge**: _coming soon._
+
+## Features
+
+- Adds a captions toggle to the Echo360 player controls.
+- Renders the currently spoken transcript line as a caption overlay.
 - Follows the player into and out of fullscreen.
+- Updates in lock-step with Echo360's own transcript highlighting.
 - Works on dual-stream layouts.
+- Auto-opens the transcripts panel on load so captions work without an extra click.
+- Only runs on `echo360.net.au`.
 
-## Install (development)
+## Usage
 
-### Firefox
+Click the new **CC** button at the start of the right-hand cluster of player controls to toggle captions on or off.
 
-1. Visit `about:debugging#/runtime/this-firefox`.
-2. Choose "Load Temporary Add-on".
-3. Pick `extension/manifest.json`.
+Captions only work while the **Transcripts** sidebar panel is open, because Echo360 only mounts the transcript text into the page when that panel is the active tab. The extension opens it for you on load. If you close it mid-lecture, captions will stop updating until you click the **Transcripts** button again or toggle **CC** off and back on.
 
-### Chrome / Chromium / Edge
+## Compatibility
 
-1. Visit `chrome://extensions`.
-2. Enable Developer mode.
-3. Choose "Load unpacked" and select the `extension/` folder.
-
-## Project layout
-
-```
-extension/      Browser extension source (manifest, content script, styles, icons)
-store/          Store-listing copy for AMO and the Chrome Web Store
-.github/        Issue templates, PR template, CI workflow, dependabot config
-```
-
-## Development
-
-```sh
-npm install
-npm run lint        # eslint over the extension source
-npm run format      # prettier write
-npm run web-ext     # web-ext lint over the extension folder
-npm run build       # produces a packaged zip in dist/
-```
-
-Pre-commit hooks run lint and format on staged files via husky and lint-staged.
-
-## Publishing
-
-Store-listing copy and submission notes live in [`store/listing.md`](store/listing.md). The privacy policy is in [`PRIVACY.md`](PRIVACY.md). Release notes go in [`CHANGELOG.md`](CHANGELOG.md).
-
-### Bump the version
-
-1. Edit `version` in `extension/manifest.json` and `package.json`.
-2. Move `Unreleased` entries in `CHANGELOG.md` under a new dated heading.
-3. Commit, tag (`git tag vX.Y.Z`), push (`git push --tags`).
-
-### Build the package
-
-```sh
-npm run build
-# → dist/echo360_captions-X.Y.Z.zip
-```
-
-### Submit to the Chrome Web Store
-
-1. Sign in at <https://chrome.google.com/webstore/devconsole>.
-2. New item → upload `dist/echo360_captions-X.Y.Z.zip`.
-3. Paste the description, single-purpose statement and permissions justification from `store/listing.md`.
-4. Upload the 128px icon and any promotional tiles.
-5. Set distribution to public or unlisted. Submit for review.
-
-### Submit to addons.mozilla.org
-
-1. Sign in at <https://addons.mozilla.org/developers/>.
-2. Submit a new add-on → upload `dist/echo360_captions-X.Y.Z.zip`.
-3. Paste the summary and detailed description from `store/listing.md`.
-4. Source code is hosted publicly so no source upload is required for review.
+This was developed and tested against the University of Western Australia's Echo360 deployment. Echo360 is a general lecture-capture platform used at many institutions and the extension should work wherever the player and transcript layout match. If it does not work on your institution's deployment, please open an issue with a snippet of the relevant page markup so the selectors can be widened.
 
 ## Privacy
 
-This extension makes no network requests, declares no permissions, and only runs on `echo360.net.au`. See [PRIVACY.md](PRIVACY.md).
+The extension makes no network requests, declares no permissions, and only runs on `echo360.net.au`. It does not collect, transmit or store any data. Full policy in [PRIVACY.md](PRIVACY.md).
 
-## Notes
+## Contributing
 
-- Manifest V3, cross-browser (Firefox 115+, Chromium-based browsers).
-- Transcript updates are batched into a single `requestAnimationFrame` per tick, so heavy DOM churn does not flood the overlay.
+Bug reports and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup. The project uses ESLint, Prettier and `web-ext` to keep the source tidy.
 
 ## Licence
 

@@ -10,31 +10,46 @@ Echo360 Captions
 
 Echo360 CC
 
-## Summary (≤132 chars, used by Chrome Web Store)
+## Summary (≤132 chars, used by Chrome Web Store and AMO)
 
-UWA Echo360 lectures expose transcripts, not captions. Adds a CC button that overlays the active transcript on the video player.
+Echo360 shows lecture transcripts but not on-screen captions. Adds a CC button that overlays the active transcript on the video.
 
 ## Detailed description
 
-UWA Echo360 lectures provide a transcript panel but no on-screen captions. That makes lectures hard to follow when you are watching at speed, in a noisy room, with the volume off, or simply prefer reading along.
+Echo360 hosts lecture videos and shows a transcript panel beside the player, but it does not surface those transcripts as captions on the video itself. That makes lectures hard to follow when you are watching at speed, in a noisy room, with the volume off, or when reading along is simply easier than listening.
 
-**Echo360 Captions** adds a small CC button to the Echo360 player. When you turn it on, the active transcript line is rendered as a caption overlay directly on top of the video, exactly where you would expect captions to sit. Toggling it off removes the overlay instantly.
+Echo360 Captions adds a small CC button to the Echo360 player. Toggle it on and the active transcript line is rendered as a caption overlay directly on top of the video, exactly where captions belong. Toggle it off and the overlay disappears. Captions follow the player into and out of fullscreen, and dual-stream layouts are handled.
 
-### Features
+Captions only work while the Echo360 transcripts panel is open, since Echo360 only mounts the transcript text into the page when that panel is the active sidebar tab. The extension opens the panel for you on load. If you close it mid-lecture, click the Transcripts button in the player controls to restore captions.
 
-- Adds a captions toggle to the Echo360 player controls.
-- Renders the currently spoken transcript line as a caption overlay.
-- Follows the player into and out of fullscreen.
-- Updates in lock-step with Echo360's own transcript highlighting.
-- Works on dual-stream layouts.
+The extension only runs on echo360.net.au pages. It declares no permissions, makes no network requests, and does not collect, transmit or store any data. All processing happens locally in your browser using the transcript that Echo360 already renders on the page.
 
-### Privacy
+This was developed and tested against the University of Western Australia's Echo360 deployment. Echo360 is a general lecture-capture platform used at many institutions and the extension should work wherever the player and transcript layout match. If it does not work for your institution, please open an issue with a snippet of the relevant page markup so the selectors can be widened.
 
-This extension does not collect, transmit or store any data. It declares no permissions, requests no network access, and only runs on `echo360.net.au` pages. See [PRIVACY.md](https://github.com/spuddydev/echo360-captions/blob/main/PRIVACY.md).
+Source, issues and privacy policy: https://github.com/spuddydev/echo360-captions
 
-### Source
+## Notes to reviewer
 
-Open source on GitHub: https://github.com/spuddydev/echo360-captions
+Source code (matches the uploaded zip exactly): https://github.com/spuddydev/echo360-captions — MIT, no minification, no transpilation. Build: `npm install && npm run build` which calls `web-ext build`.
+
+Scope: a single content script (`content.js`) and stylesheet (`content.css`) injected only on `*://*.echo360.net.au/*` via `content_scripts.matches`. No background script, no host or API permissions, no storage, no network requests, no analytics.
+
+What it does: reads transcript text already in the DOM (the row in `.ReactVirtualized__Grid` flagged as the active line by Echo360) and renders that text in an absolutely positioned `<div>` overlay attached to the player element. A toggle button is injected into the existing player control cluster.
+
+Testing requires logging in to any Echo360 instance and opening a lecture that has a transcript. The extension opens the transcripts panel for the user on bootstrap, but Echo360 lazily mounts the transcript DOM only once that tab has been the active sidebar tab at least once for the lecture. Development was on the University of Western Australia deployment (`echo360.net.au`). I do not have public test credentials to share, but the linked GitHub repo includes a description of the DOM markers used so the behaviour can be verified against captured fixtures. Happy to provide a recorded walkthrough on request.
+
+### Data and privacy
+
+This extension does not collect, transmit, store, or share any user data.
+
+- No analytics, telemetry, error reporting or remote logging.
+- No network requests of its own — the content script only reads DOM that Echo360 has already rendered.
+- No cookies, localStorage, sessionStorage, IndexedDB or any other browser storage.
+- No background script, no service worker, no popup, no options page.
+- No host or API permissions are declared. The content script is scoped to `*://*.echo360.net.au/*` via `content_scripts.matches`.
+- `browser_specific_settings.gecko.data_collection_permissions.required` is set to `["none"]` to declare this explicitly to Firefox.
+
+All processing is purely DOM-side: the script reads transcript text already on the page and renders it back onto the same page as a caption overlay. The text never leaves the browser.
 
 ## Categories
 
@@ -43,7 +58,7 @@ Open source on GitHub: https://github.com/spuddydev/echo360-captions
 
 ## Tags / keywords
 
-echo360, captions, subtitles, transcript, lecture, accessibility, university, uwa
+echo360, captions, subtitles, transcript, lecture, accessibility
 
 ## Single purpose statement (Chrome Web Store)
 
