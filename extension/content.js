@@ -6,7 +6,8 @@
   const ACTIVE_ICON_SELECTOR = '[data-test-name="status-filled"], svg[aria-label="status-filled"]';
   const SPAN_SELECTOR = 'dd span';
   const FULLSCREEN_BTN_SELECTOR = '#fullscreen-toggle-btn';
-  const VIDEO_SELECTOR = 'video';
+  const PLAYER_HOST_SELECTOR = '#player, [aria-label="Media Player"]';
+  const VIDEO_FALLBACK_SELECTOR = 'video';
   const BTN_CLASS = 'echo360-captions-toggle';
   const OVERLAY_CLASS = 'echo360-captions-overlay';
 
@@ -28,9 +29,10 @@
   }
 
   function findPlayerHost() {
-    const video = document.querySelector(VIDEO_SELECTOR);
-    if (!video) return null;
-    return video.parentElement;
+    const player = document.querySelector(PLAYER_HOST_SELECTOR);
+    if (player) return player;
+    const video = document.querySelector(VIDEO_FALLBACK_SELECTOR);
+    return video ? video.parentElement : null;
   }
 
   function findActiveSpan(grid) {
@@ -146,12 +148,7 @@
       event.stopPropagation();
       toggleCaptions();
     });
-    const fs = cluster.querySelector(FULLSCREEN_BTN_SELECTOR);
-    if (fs) {
-      cluster.insertBefore(buttonEl, fs);
-    } else {
-      cluster.appendChild(buttonEl);
-    }
+    cluster.insertBefore(buttonEl, cluster.firstChild);
     syncButtonState();
     console.info(`${LOG_PREFIX} CC button injected`);
   }
