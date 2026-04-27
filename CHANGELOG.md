@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- New extension icon artwork at all five sizes.
+
 ## [0.2.0] - 2026-04-27
 
 ### Added
