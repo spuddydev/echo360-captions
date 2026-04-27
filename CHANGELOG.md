@@ -6,8 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-27
+
 ### Changed
 
+- Tighten the content script match pattern to https only so the Chrome Web Store does not flag the listing for an in-depth host permission review.
 - New extension icon artwork at all five sizes.
 
 ## [0.2.0] - 2026-04-27
@@ -32,7 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Captions follow the player into and out of fullscreen.
 - Icons at 16, 32, 48, 96 and 128 pixels.
 
-[Unreleased]: https://github.com/spuddydev/echo360-captions/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/spuddydev/echo360-captions/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/spuddydev/echo360-captions/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/spuddydev/echo360-captions/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/spuddydev/echo360-captions/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/spuddydev/echo360-captions/releases/tag/v0.1.0

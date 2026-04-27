@@ -32,7 +32,7 @@ Source, issues and privacy policy: https://github.com/spuddydev/echo360-captions
 
 Source code (matches the uploaded zip exactly): https://github.com/spuddydev/echo360-captions — MIT, no minification, no transpilation. Build: `npm install && npm run build` which calls `web-ext build`.
 
-Scope: a single content script (`content.js`) and stylesheet (`content.css`) injected only on `*://*.echo360.net.au/*` via `content_scripts.matches`. No background script, no host or API permissions, no storage, no network requests, no analytics.
+Scope: a single content script (`content.js`) and stylesheet (`content.css`) injected only on `https://*.echo360.net.au/*` via `content_scripts.matches`. No background script, no host or API permissions, no storage, no network requests, no analytics.
 
 What it does: reads transcript text already in the DOM (the row in `.ReactVirtualized__Grid` flagged as the active line by Echo360) and renders that text in an absolutely positioned `<div>` overlay attached to the player element. A toggle button is injected into the existing player control cluster.
 
@@ -46,7 +46,7 @@ This extension does not collect, transmit, store, or share any user data.
 - No network requests of its own — the content script only reads DOM that Echo360 has already rendered.
 - No cookies, localStorage, sessionStorage, IndexedDB or any other browser storage.
 - No background script, no service worker, no popup, no options page.
-- No host or API permissions are declared. The content script is scoped to `*://*.echo360.net.au/*` via `content_scripts.matches`.
+- No host or API permissions are declared. The content script is scoped to `https://*.echo360.net.au/*` via `content_scripts.matches`.
 - `browser_specific_settings.gecko.data_collection_permissions.required` is set to `["none"]` to declare this explicitly to Firefox.
 
 All processing is purely DOM-side: the script reads transcript text already on the page and renders it back onto the same page as a caption overlay. The text never leaves the browser.
@@ -66,7 +66,7 @@ The extension has one purpose: render the Echo360 transcript as on-player captio
 
 ## Permissions justification (Chrome Web Store)
 
-No optional or host permissions are declared. The `content_scripts.matches` field limits injection to `*://*.echo360.net.au/*`. No additional justification needed.
+No optional or host permissions are declared. The `content_scripts.matches` field limits injection to `https://*.echo360.net.au/*`. No additional justification needed.
 
 ## Support email
 

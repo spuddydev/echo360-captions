@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Echo360 Captions",
   "short_name": "Echo360 CC",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "UWA Echo360 lectures expose transcripts, not captions. Adds a CC button that overlays the active transcript on the video player.",
   "author": "spuddydev",
   "homepage_url": "https://github.com/spuddydev/echo360-captions",
@@ -15,7 +15,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.echo360.net.au/*"],
+      "matches": ["https://*.echo360.net.au/*"],
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_idle",
