@@ -15,7 +15,7 @@ The content script runs only on `*.echo360.net.au` pages. It reads the transcrip
 
 ## Permissions
 
-The extension declares no `permissions` in its manifest. The content script is injected only on hosts that match `*://*.echo360.net.au/*`, as specified in `content_scripts.matches`.
+The extension declares no `permissions` in its manifest. The content script is injected only on hosts that match `https://*.echo360.net.au/*`, as specified in `content_scripts.matches`.
 
 ## Contact
 
