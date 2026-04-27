@@ -1,0 +1,28 @@
+{
+  "name": "echo360-captions",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser extension that renders Echo360 transcripts as on-player subtitles.",
+  "license": "MIT",
+  "author": "spuddydev <hlisle@protonmail.com>",
+  "scripts": {
+    "lint": "eslint extension",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "web-ext": "web-ext lint --source-dir extension --self-hosted",
+    "build": "web-ext build --source-dir extension --artifacts-dir dist --overwrite-dest",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,json,css,md,yml,yaml}": "prettier --write",
+    "extension/**/*.js": "eslint --fix"
+  },
+  "devDependencies": {
+    "eslint": "^9.18.0",
+    "globals": "^15.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.3.0",
+    "prettier": "^3.4.2",
+    "web-ext": "^8.3.0"
+  }
+}

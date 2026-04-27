@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.zip
+*.xpi
+
+.DS_Store
+Thumbs.db
+
+.env
+.env.local
+.vscode/
+.idea/
+
+npm-debug.log*
+yarn-error.log*

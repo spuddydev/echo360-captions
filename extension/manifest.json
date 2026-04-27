@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Echo360 Captions",
+  "version": "0.1.0",
+  "description": "Renders the active Echo360 transcript line as on-player subtitles.",
+  "content_scripts": [
+    {
+      "matches": ["*://*.echo360.net.au/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "echo360-captions@spuddydev.github.io",
+      "strict_min_version": "115.0"
+    }
+  }
+}
