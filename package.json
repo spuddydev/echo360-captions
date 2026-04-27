@@ -2,8 +2,14 @@
   "name": "echo360-captions",
   "version": "0.1.0",
   "private": true,
-  "description": "Browser extension that renders Echo360 transcripts as on-player subtitles.",
+  "description": "Browser extension that turns UWA Echo360 transcripts into on-player closed captions.",
   "license": "MIT",
+  "homepage": "https://github.com/spuddydev/echo360-captions",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spuddydev/echo360-captions.git"
+  },
+  "bugs": "https://github.com/spuddydev/echo360-captions/issues",
   "author": "spuddydev <hlisle@protonmail.com>",
   "scripts": {
     "lint": "eslint extension",
