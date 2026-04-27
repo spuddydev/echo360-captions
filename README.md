@@ -23,7 +23,9 @@ Echo360 shows transcripts in a side panel but does not surface them as captions 
 
 ## Usage
 
-Click the new **CC** button at the start of the right-hand cluster of player controls to toggle captions on or off. The extension opens the transcripts panel for you on load; if for any reason it isn't open, click the **Transcripts** button in the player controls.
+Click the new **CC** button at the start of the right-hand cluster of player controls to toggle captions on or off.
+
+Captions only work while the **Transcripts** sidebar panel is open, because Echo360 only mounts the transcript text into the page when that panel is the active tab. The extension opens it for you on load. If you close it mid-lecture, captions will stop updating until you click the **Transcripts** button again or toggle **CC** off and back on.
 
 ## Compatibility
 

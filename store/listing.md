@@ -20,7 +20,7 @@ Echo360 hosts lecture videos and shows a transcript panel beside the player, but
 
 Echo360 Captions adds a small CC button to the Echo360 player. Toggle it on and the active transcript line is rendered as a caption overlay directly on top of the video, exactly where captions belong. Toggle it off and the overlay disappears. Captions follow the player into and out of fullscreen, and dual-stream layouts are handled.
 
-The extension opens the Echo360 transcripts panel for you on load, since Echo360 only mounts the transcript text into the page once that panel is the active sidebar tab. If the panel ever ends up closed, just click the Transcripts button in the player controls again.
+Captions only work while the Echo360 transcripts panel is open, since Echo360 only mounts the transcript text into the page when that panel is the active sidebar tab. The extension opens the panel for you on load. If you close it mid-lecture, click the Transcripts button in the player controls to restore captions.
 
 The extension only runs on echo360.net.au pages. It declares no permissions, makes no network requests, and does not collect, transmit or store any data. All processing happens locally in your browser using the transcript that Echo360 already renders on the page.
 
