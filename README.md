@@ -6,10 +6,8 @@ Echo360 shows transcripts in a side panel but does not surface them as captions 
 
 ## Install
 
-<!-- TODO: replace with the AMO and Chrome Web Store links once published. -->
-
-- **Firefox**: _coming soon._
-- **Chrome / Edge**: _coming soon._
+- **Firefox**: [Mozilla Add-ons](https://addons.mozilla.org/en-US/firefox/addon/echo360-captions/)
+- **Chrome / Edge**: [Chrome Webstore](https://chromewebstore.google.com/detail/echo360-captions/nopjokgmapbccmgnilfmdbcbmhdeijgl)
 
 ## Features
 
