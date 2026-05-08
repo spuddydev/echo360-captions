@@ -2,8 +2,17 @@
 
 -
 
-## Test plan
+## Linked issue
 
-- [ ] Loaded the extension locally and exercised the change on echo360.net.au.
-- [ ] `npm run lint` passes.
-- [ ] `npm run web-ext` passes.
+Closes #
+
+## How I tested
+
+- [ ] Loaded the extension locally and exercised the change on a real Echo360 lecture.
+- [ ] Browser tested:
+
+## Checks
+
+- [ ] `npm run lint`
+- [ ] `npm run format:check`
+- [ ] `npm run web-ext`
