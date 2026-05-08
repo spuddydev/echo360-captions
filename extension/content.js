@@ -11,6 +11,11 @@
   const TRANSCRIPTS_TAB_SELECTOR = '#transcripts-tab';
   const BTN_CLASS = 'echo360-captions-toggle';
   const OVERLAY_CLASS = 'echo360-captions-overlay';
+  const STORAGE_KEY = 'captionsEnabled';
+  const storage =
+    typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local
+      ? chrome.storage.local
+      : null;
 
   let captionsEnabled = false;
   let lastText = '';
@@ -149,8 +154,36 @@
     buttonEl.classList.toggle('is-active', captionsEnabled);
   }
 
-  function toggleCaptions() {
-    captionsEnabled = !captionsEnabled;
+  function persistState(value) {
+    if (!storage) return;
+    try {
+      const result = storage.set({ [STORAGE_KEY]: value });
+      if (result && typeof result.catch === 'function') {
+        result.catch((err) => console.warn(`${LOG_PREFIX} failed to persist state`, err));
+      }
+    } catch (err) {
+      console.warn(`${LOG_PREFIX} failed to persist state`, err);
+    }
+  }
+
+  function loadStoredState() {
+    if (!storage) return Promise.resolve(false);
+    return new Promise((resolve) => {
+      try {
+        const handle = (result) => resolve(Boolean(result && result[STORAGE_KEY]));
+        const maybe = storage.get(STORAGE_KEY, handle);
+        if (maybe && typeof maybe.then === 'function') {
+          maybe.then(handle).catch(() => resolve(false));
+        }
+      } catch (err) {
+        console.warn(`${LOG_PREFIX} failed to read stored state`, err);
+        resolve(false);
+      }
+    });
+  }
+
+  function setCaptionsEnabled(enabled, { persist = true } = {}) {
+    captionsEnabled = enabled;
     syncButtonState();
     if (captionsEnabled) {
       transcriptAutoOpened = false;
@@ -161,6 +194,11 @@
     } else {
       removeOverlay();
     }
+    if (persist) persistState(enabled);
+  }
+
+  function toggleCaptions() {
+    setCaptionsEnabled(!captionsEnabled);
   }
 
   function injectButton() {
@@ -204,6 +242,13 @@
   document.addEventListener('mozfullscreenchange', bootstrap);
 
   bootstrap();
+
+  loadStoredState().then((stored) => {
+    if (stored && !captionsEnabled) {
+      console.info(`${LOG_PREFIX} restoring stored captions preference: on`);
+      setCaptionsEnabled(true, { persist: false });
+    }
+  });
 
   window.__echo360Captions = {
     state: () => ({
