@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Captions now read the rows around the active transcript line and merge them into a single sentence-shaped block, capped at around eighty characters, so each line on screen carries a bit more context. The block only changes when a new sentence begins, so nothing on screen is shown twice.
+- The last caption stays on screen for up to six seconds after the transcript drops the active marker, instead of blanking the moment the marker disappears. This smooths over short gaps where the transcript falls behind playback.
+
 ## [0.3.0] - 2026-05-08
 
 ### Added

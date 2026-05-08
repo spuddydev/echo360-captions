@@ -12,13 +12,19 @@
   const BTN_CLASS = 'echo360-captions-toggle';
   const OVERLAY_CLASS = 'echo360-captions-overlay';
   const STORAGE_KEY = 'captionsEnabled';
+  const MAX_GROUP_CHARS = 80;
+  const HOLD_MS = 6000;
+  const SENTENCE_END_RE = /[.?!]["')\]]*\s*$/;
   const storage =
     typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local
       ? chrome.storage.local
       : null;
 
   let captionsEnabled = false;
-  let lastText = '';
+  let displayedText = '';
+  let lastGroupRowTexts = new Set();
+  let lastActiveTime = 0;
+  let holdTimer = null;
   let overlayEl = null;
   let buttonEl = null;
   let controlsEl = null;
@@ -66,34 +72,114 @@
     return video ? video.parentElement : null;
   }
 
-  function findActiveSpan(grid) {
+  function findActiveRow(grid) {
     const icon = grid.querySelector(ACTIVE_ICON_SELECTOR);
     if (!icon) return null;
-    let row = icon.parentElement;
-    while (row && row !== grid) {
-      const span = row.querySelector(SPAN_SELECTOR);
-      if (span) return span;
-      row = row.parentElement;
+    let node = icon;
+    while (node.parentElement && node.parentElement !== grid) {
+      const parent = node.parentElement;
+      const hasSpan = node.querySelector(SPAN_SELECTOR);
+      if (hasSpan) {
+        const siblings = Array.from(parent.children).filter((c) => c !== node);
+        if (siblings.some((s) => s.querySelector(SPAN_SELECTOR))) return node;
+      }
+      node = parent;
     }
     return null;
   }
 
-  function readActiveText() {
-    const grid = document.querySelector(GRID_SELECTOR);
-    if (!grid) return '';
-    const span = findActiveSpan(grid);
+  function rowText(row) {
+    if (!row) return '';
+    const span = row.querySelector(SPAN_SELECTOR);
     return span ? span.textContent.trim() : '';
+  }
+
+  function endsSentence(text) {
+    return SENTENCE_END_RE.test(text);
+  }
+
+  function computeGroup(activeRow) {
+    const activeText = rowText(activeRow);
+    if (!activeText) return { text: '', rowTexts: [] };
+    const parent = activeRow.parentElement;
+    if (!parent) return { text: activeText, rowTexts: [activeText] };
+    const siblings = Array.from(parent.children);
+    const idx = siblings.indexOf(activeRow);
+    if (idx < 0) return { text: activeText, rowTexts: [activeText] };
+
+    let text = activeText;
+    const rowTexts = [activeText];
+
+    if (!endsSentence(text)) {
+      for (let i = idx + 1; i < siblings.length; i += 1) {
+        const t = rowText(siblings[i]);
+        if (!t) continue;
+        const tentative = `${text} ${t}`;
+        if (tentative.length > MAX_GROUP_CHARS) break;
+        text = tentative;
+        rowTexts.push(t);
+        if (endsSentence(t)) break;
+      }
+    }
+
+    for (let i = idx - 1; i >= 0; i -= 1) {
+      const t = rowText(siblings[i]);
+      if (!t) continue;
+      if (lastGroupRowTexts.has(t)) break;
+      if (endsSentence(t)) break;
+      const tentative = `${t} ${text}`;
+      if (tentative.length > MAX_GROUP_CHARS) break;
+      text = tentative;
+      rowTexts.unshift(t);
+    }
+
+    return { text, rowTexts };
+  }
+
+  function clearHold() {
+    if (holdTimer) {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+    }
+  }
+
+  function renderOverlay(text) {
+    if (!overlayEl) return;
+    overlayEl.textContent = text;
+    overlayEl.classList.toggle('is-empty', text.length === 0);
   }
 
   function paint() {
     pending = false;
     if (!captionsEnabled) return;
-    const text = readActiveText();
-    if (text === lastText) return;
-    lastText = text;
-    if (overlayEl) {
-      overlayEl.textContent = text;
-      overlayEl.classList.toggle('is-empty', text.length === 0);
+    const grid = document.querySelector(GRID_SELECTOR);
+    const activeRow = grid ? findActiveRow(grid) : null;
+
+    if (activeRow) {
+      clearHold();
+      const group = computeGroup(activeRow);
+      if (group.text && group.text !== displayedText) {
+        displayedText = group.text;
+        lastGroupRowTexts = new Set(group.rowTexts);
+        renderOverlay(displayedText);
+      }
+      lastActiveTime = performance.now();
+      return;
+    }
+
+    if (!displayedText) return;
+
+    const elapsed = performance.now() - lastActiveTime;
+    if (elapsed >= HOLD_MS) {
+      displayedText = '';
+      lastGroupRowTexts.clear();
+      renderOverlay('');
+      clearHold();
+    } else if (!holdTimer) {
+      holdTimer = setTimeout(() => {
+        holdTimer = null;
+        schedule();
+      }, HOLD_MS - elapsed);
     }
   }
 
@@ -189,9 +275,15 @@
       transcriptAutoOpened = false;
       openTranscriptPanel();
       ensureOverlay();
-      lastText = '';
+      displayedText = '';
+      lastGroupRowTexts.clear();
+      lastActiveTime = 0;
+      clearHold();
       schedule();
     } else {
+      clearHold();
+      displayedText = '';
+      lastGroupRowTexts.clear();
       removeOverlay();
     }
     if (persist) persistState(enabled);
