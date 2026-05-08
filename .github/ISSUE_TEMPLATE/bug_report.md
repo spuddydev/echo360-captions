@@ -6,24 +6,26 @@ labels: bug
 assignees: ''
 ---
 
-**Description**
+## Description
+
 A clear and concise description of the bug.
 
-**Steps to reproduce**
+## Steps to reproduce
 
 1.
 2.
 3.
 
-**Expected behaviour**
+## Expected behaviour
 
-**Actual behaviour**
+## Actual behaviour
 
-**Environment**
+## Environment
 
 - Browser and version:
 - Extension version:
 - Operating system:
 
-**Additional context**
+## Additional context
+
 Console errors, screenshots, or anything else useful. Please redact any sensitive content before attaching.

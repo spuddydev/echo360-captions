@@ -6,12 +6,14 @@ labels: enhancement
 assignees: ''
 ---
 
-**Problem**
+## Problem
+
 What is the user need or pain point?
 
-**Proposed solution**
+## Proposed solution
+
 What would you like the extension to do?
 
-**Alternatives considered**
+## Alternatives considered
 
-**Additional context**
+## Additional context
