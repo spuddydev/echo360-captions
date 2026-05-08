@@ -24,7 +24,7 @@
     "extension/**/*.js": "eslint --fix"
   },
   "devDependencies": {
-    "eslint": "^9.18.0",
+    "eslint": "^10.3.0",
     "globals": "^15.14.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.3.0",
