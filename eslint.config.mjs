@@ -8,6 +8,7 @@ export default [
       sourceType: 'script',
       globals: {
         ...globals.browser,
+        chrome: 'readonly',
       },
     },
     rules: {
