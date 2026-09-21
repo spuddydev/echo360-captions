@@ -34,6 +34,8 @@
   let smallerEl = null;
   let largerEl = null;
   let captionScale = 1;
+  let pressingControl = false;
+  let controlsEngaged = false;
   let buttonEl = null;
   let controlsEl = null;
   let playerEl = null;
@@ -109,9 +111,7 @@
     if (textEl) {
       textEl.textContent = text;
     }
-    if (layerEl) {
-      layerEl.classList.toggle('is-empty', text.length === 0);
-    }
+    syncEmptyState();
   }
 
   function schedule() {
@@ -136,6 +136,22 @@
     });
     console.info(`${LOG_PREFIX} transcript grid observed`);
     schedule();
+  }
+
+  // The caption goes away between spoken lines and the controls go with it. That
+  // would pull them out from under someone in the middle of using them, so while
+  // they are in use the caption's own gap is not allowed to hide them.
+  function syncEmptyState() {
+    if (!layerEl) return;
+    layerEl.classList.toggle('is-empty', lastText.length === 0 && !controlsEngaged);
+  }
+
+  function refreshEngagement() {
+    const focused = Boolean(layerEl && layerEl.contains(document.activeElement));
+    const next = pressingControl || focused;
+    if (next === controlsEngaged) return;
+    controlsEngaged = next;
+    syncEmptyState();
   }
 
   // Snap to the step grid so a drifted or hand edited value cannot land on a
@@ -185,6 +201,10 @@
     path.setAttribute('d', shape);
     svg.appendChild(path);
     btn.appendChild(svg);
+    btn.addEventListener('pointerdown', () => {
+      pressingControl = true;
+      refreshEngagement();
+    });
     btn.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -203,6 +223,8 @@
     if (!layerEl) {
       layerEl = document.createElement('div');
       layerEl.className = LAYER_CLASS;
+      layerEl.addEventListener('focusin', refreshEngagement);
+      layerEl.addEventListener('focusout', () => requestAnimationFrame(refreshEngagement));
       overlayEl = document.createElement('div');
       overlayEl.className = OVERLAY_CLASS;
       overlayEl.setAttribute('aria-live', 'polite');
@@ -338,6 +360,13 @@
     childList: true,
     subtree: true,
   });
+
+  const endControlPress = () => {
+    pressingControl = false;
+    refreshEngagement();
+  };
+  document.addEventListener('pointerup', endControlPress);
+  document.addEventListener('pointercancel', endControlPress);
 
   document.addEventListener('fullscreenchange', bootstrap);
   document.addEventListener('webkitfullscreenchange', bootstrap);
