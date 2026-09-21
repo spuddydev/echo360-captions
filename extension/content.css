@@ -64,16 +64,17 @@
   white-space: pre-wrap;
 }
 
-/* Above the caption rather than beside it. The box grows sideways from its
-   centre, so anything flanking it is shoved along on every press and leaves the
-   pointer behind. */
+/* Below the caption, tucked to its trailing end. Two references hold still as
+   the caption grows: its horizontal centre, and the bottom edge it is anchored
+   by. Everything else moves on every press and leaves the pointer behind, the
+   sides because the box widens from its centre, the top because a rewrapped
+   line pushes it upwards. */
 .echo360-captions-sizer {
   align-items: center;
   appearance: none;
   background: rgba(0, 0, 0, 0.45);
   border: none;
   border-radius: 50%;
-  bottom: calc(100% + var(--echo360-sizer-gap));
   color: rgba(255, 255, 255, 0.82);
   cursor: pointer;
   display: flex;
@@ -81,14 +82,25 @@
   justify-content: center;
   line-height: 0;
   margin: 0;
+  opacity: 0;
   padding: 0;
-  pointer-events: auto;
+  pointer-events: none;
   position: absolute;
+  top: calc(100% + var(--echo360-sizer-gap));
   transform: translateX(-50%);
   transition:
+    opacity 0.16s ease,
     background 0.16s ease,
     color 0.16s ease;
   width: var(--echo360-sizer-size);
+}
+
+/* Quiet until the pointer comes near the caption, and reachable by keyboard
+   whether it is near or not. */
+.echo360-captions-layer.is-active .echo360-captions-sizer,
+.echo360-captions-layer:focus-within .echo360-captions-sizer {
+  opacity: 0.62;
+  pointer-events: auto;
 }
 
 .echo360-captions-sizer.is-smaller {
@@ -114,6 +126,7 @@
 .echo360-captions-sizer:hover {
   background: rgba(0, 0, 0, 0.75);
   color: #fff;
+  opacity: 1;
 }
 
 .echo360-captions-sizer:focus-visible {
@@ -121,7 +134,14 @@
   outline-offset: 2px;
 }
 
-.echo360-captions-sizer[disabled] {
+.echo360-captions-layer.is-active .echo360-captions-sizer[disabled],
+.echo360-captions-layer:focus-within .echo360-captions-sizer[disabled] {
   cursor: default;
-  opacity: 0.35;
+  opacity: 0.22;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .echo360-captions-sizer {
+    transition: none;
+  }
 }

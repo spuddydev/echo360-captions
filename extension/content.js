@@ -37,6 +37,11 @@
   let captionScale = 1;
   let pressingControl = false;
   let controlsEngaged = false;
+  let controlsActive = false;
+  let heldSizerX = null;
+  let pointerX = 0;
+  let pointerY = 0;
+  let proximityPending = false;
   let buttonEl = null;
   let controlsEl = null;
   let playerEl = null;
@@ -167,14 +172,49 @@
   }
 
   // The controls sit over the caption's trailing end, so their offset follows
-  // the box's half width.
+  // the box's half width. While they are awake that offset is held, because
+  // every press widens the caption and would otherwise walk them out from under
+  // the pointer before it could press again.
   function positionSizers() {
     if (!layerEl || !overlayEl || !smallerEl) return;
+    if (controlsActive && heldSizerX !== null) return;
     const box = overlayEl.getBoundingClientRect();
     if (!box.width) return;
     const own = smallerEl.getBoundingClientRect().width;
-    const x = Math.max(0, box.width / 2 - own - 2);
-    layerEl.style.setProperty(SIZER_X_PROP, `${x.toFixed(1)}px`);
+    heldSizerX = Math.max(0, box.width / 2 - own - 2);
+    layerEl.style.setProperty(SIZER_X_PROP, `${heldSizerX.toFixed(1)}px`);
+  }
+
+  function setControlsActive(value) {
+    if (controlsActive === value) return;
+    controlsActive = value;
+    if (!controlsActive) heldSizerX = null;
+    if (layerEl) layerEl.classList.toggle('is-active', controlsActive);
+    positionSizers();
+  }
+
+  // Distance from the pointer to the nearest edge of the caption, zero when it
+  // is over it. The controls wake on contact and stay awake anywhere within
+  // reach, so there is no edge to fall off on the way to one.
+  function evaluateProximity() {
+    proximityPending = false;
+    if (!layerEl || !overlayEl || !captionsEnabled) return;
+    const box = overlayEl.getBoundingClientRect();
+    if (!box.width) {
+      setControlsActive(false);
+      return;
+    }
+    const dx = Math.max(box.left - pointerX, 0, pointerX - box.right);
+    const dy = Math.max(box.top - pointerY, 0, pointerY - box.bottom);
+    const distance = Math.hypot(dx, dy);
+    if (distance === 0) setControlsActive(true);
+    else if (distance > Math.max(80, box.height * 2.4)) setControlsActive(false);
+  }
+
+  function scheduleProximity() {
+    if (proximityPending) return;
+    proximityPending = true;
+    requestAnimationFrame(evaluateProximity);
   }
 
   function applyScale() {
@@ -271,6 +311,8 @@
     textEl = null;
     smallerEl = null;
     largerEl = null;
+    controlsActive = false;
+    heldSizerX = null;
   }
 
   function syncButtonState() {
@@ -363,6 +405,16 @@
     childList: true,
     subtree: true,
   });
+
+  document.addEventListener(
+    'pointermove',
+    (event) => {
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      scheduleProximity();
+    },
+    { passive: true }
+  );
 
   const endControlPress = () => {
     pressingControl = false;
