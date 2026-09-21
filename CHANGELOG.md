@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-21
+
+### Added
+
+- Drag the captions anywhere on the video. They stay where you put them for the rest of the lecture and go back to their usual spot next time.
+- Make the captions bigger or smaller. Move the pointer near them and a minus and plus pair appears just below. The size you pick is remembered for the next lecture, the same way the on and off setting already is.
+
 ## [0.3.0] - 2026-05-08
 
 ### Added
@@ -41,7 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Captions follow the player into and out of fullscreen.
 - Icons at 16, 32, 48, 96 and 128 pixels.
 
-[Unreleased]: https://github.com/spuddydev/echo360-captions/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/spuddydev/echo360-captions/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/spuddydev/echo360-captions/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/spuddydev/echo360-captions/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/spuddydev/echo360-captions/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/spuddydev/echo360-captions/compare/v0.1.1...v0.2.0
