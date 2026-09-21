@@ -17,6 +17,7 @@
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const SCALE_PROP = '--echo360-caption-scale';
   const SIZER_X_PROP = '--echo360-sizer-x';
+  const PROXIMITY_SLACK = 16;
   const SCALE_MIN = 0.7;
   const SCALE_MAX = 2;
   const SCALE_STEP = 0.1;
@@ -337,9 +338,28 @@
     positionSizers();
   }
 
-  // Distance from the pointer to the nearest edge of the caption, zero when it
-  // is over it. The controls wake on contact and stay awake anywhere within
-  // reach, so there is no edge to fall off on the way to one.
+  // Everything the pointer is allowed to be near: the caption, and the controls
+  // wherever they have actually ended up. Their sideways offset is frozen while
+  // they are awake, so a caption that shrinks under a still pointer leaves them
+  // hanging outside its box. Asking the boxes where they are is the only way to
+  // be sure the thing under the pointer counts as near it.
+  function controlsRegion(box) {
+    const region = { top: box.top, bottom: box.bottom, left: box.left, right: box.right };
+    for (const el of [smallerEl, largerEl]) {
+      if (!el) continue;
+      const own = el.getBoundingClientRect();
+      if (!own.width) continue;
+      region.top = Math.min(region.top, own.top);
+      region.bottom = Math.max(region.bottom, own.bottom);
+      region.left = Math.min(region.left, own.left);
+      region.right = Math.max(region.right, own.right);
+    }
+    return region;
+  }
+
+  // Waking asks for contact with the caption itself. Sleeping is measured
+  // against the whole region, with a little slack, so the slack is tolerance
+  // rather than cover for a part of the controls the caption cannot describe.
   function evaluateProximity() {
     proximityPending = false;
     if (!layerEl || !overlayEl || !captionsEnabled) return;
@@ -348,11 +368,19 @@
       setControlsActive(false);
       return;
     }
-    const dx = Math.max(box.left - pointerX, 0, pointerX - box.right);
-    const dy = Math.max(box.top - pointerY, 0, pointerY - box.bottom);
-    const distance = Math.hypot(dx, dy);
-    if (distance === 0) setControlsActive(true);
-    else if (distance > Math.max(80, box.height * 2.4)) setControlsActive(false);
+    if (
+      pointerX >= box.left &&
+      pointerX <= box.right &&
+      pointerY >= box.top &&
+      pointerY <= box.bottom
+    ) {
+      setControlsActive(true);
+      return;
+    }
+    const region = controlsRegion(box);
+    const dx = Math.max(region.left - pointerX, 0, pointerX - region.right);
+    const dy = Math.max(region.top - pointerY, 0, pointerY - region.bottom);
+    if (Math.hypot(dx, dy) > PROXIMITY_SLACK) setControlsActive(false);
   }
 
   function scheduleProximity() {
@@ -448,6 +476,10 @@
       // else.
       boxObserver = new ResizeObserver(() => {
         positionSizers();
+        // Nothing else asks again when the caption changes shape under a
+        // pointer that has not moved, and whether it is still near depends on
+        // the shape.
+        scheduleProximity();
         // A caption dragged near an edge and then made bigger, or simply handed
         // a longer line, would otherwise keep a place that no longer fits.
         reclampPosition();
