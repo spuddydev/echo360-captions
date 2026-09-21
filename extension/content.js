@@ -19,6 +19,7 @@
   const SIZER_X_PROP = '--echo360-sizer-x';
   const PROXIMITY_SLACK = 16;
   const CHROME_POLL_MS = 200;
+  const IDLE_HIDE_MS = 3000;
   const SCALE_MIN = 0.7;
   const SCALE_MAX = 2;
   const SCALE_STEP = 0.1;
@@ -47,6 +48,7 @@
   let pointerY = 0;
   let proximityPending = false;
   let chromeTimer = null;
+  let lastActivityAt = 0;
   // Where the caption has been dragged to, as fractions of the player: the
   // centre across, and the distance from the player's bottom to the caption's
   // own bottom. Null means untouched, and untouched writes no inline position at
@@ -367,14 +369,22 @@
     return false;
   }
 
+  // Anything done to the caption counts as keeping it up.
+  function noteActivity() {
+    lastActivityAt = performance.now();
+  }
+
   // Nothing announces the bar going, because it goes precisely when nothing is
   // happening. The look runs only while the controls are up, which is the only
-  // window where the answer changes anything.
+  // window where the answer changes anything. It also serves the wait the
+  // controls keep for themselves, so they clear off after a quiet spell even
+  // where the player leaves its own bar up.
   function watchPlayerChrome() {
     if (controlsActive && chromeTimer === null) {
       chromeTimer = setInterval(() => {
         if (pressingControl || dragging) return;
-        if (playerChromeHidden()) setControlsActive(false);
+        const quiet = performance.now() - lastActivityAt > IDLE_HIDE_MS;
+        if (quiet || playerChromeHidden()) setControlsActive(false);
       }, CHROME_POLL_MS);
     } else if (!controlsActive && chromeTimer !== null) {
       clearInterval(chromeTimer);
@@ -454,6 +464,7 @@
     if (next === captionScale) return;
     captionScale = next;
     sizeChosen = true;
+    noteActivity();
     applyScale();
     persistSetting(SIZE_KEY, captionScale);
   }
@@ -674,6 +685,7 @@
     (event) => {
       pointerX = event.clientX;
       pointerY = event.clientY;
+      noteActivity();
       scheduleProximity();
     },
     { passive: true }
