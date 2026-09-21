@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Pressing one no longer leaves the pair on screen after the pointer has moved away.
 - They now go when the player hides its own controls, and after a few seconds of you not using them.
 - A gap in the speech no longer takes them away while you are reaching for them. The captions still go, as before.
+- They no longer creep out from under the pointer as the text grows or shrinks, so you can hold one down or press it over and over and every press lands.
 
 ## [0.4.0] - 2026-09-21
 

@@ -36,6 +36,11 @@
   --echo360-sizer-size: max(17px, calc(var(--echo360-caption-font) * 1.02));
   --echo360-sizer-gap: max(5px, calc(var(--echo360-caption-font) * 0.3));
   --echo360-sizer-x: 0px;
+  /* Where the middle of a control sits below the caption, and how far each one
+     sits from the middle of the pair. The script pins both while they are up,
+     and the stylesheet's own answers are what they rest at. */
+  --echo360-sizer-y: calc(var(--echo360-sizer-gap) + var(--echo360-sizer-size) / 2);
+  --echo360-sizer-span: calc(var(--echo360-sizer-size) / 2 + 2px);
   /* The usual twelfth up from the bottom, unless the controls hanging below
      would fall out of a short player, in which case it lifts just enough to
      keep them in. */
@@ -112,7 +117,7 @@
   padding: 0;
   pointer-events: none;
   position: absolute;
-  top: calc(100% + var(--echo360-sizer-gap));
+  top: calc(100% + var(--echo360-sizer-y) - var(--echo360-sizer-size) / 2);
   transform: translateX(-50%);
   transition:
     opacity 0.16s ease,
@@ -131,11 +136,11 @@
 }
 
 .echo360-captions-sizer.is-smaller {
-  left: calc(50% + var(--echo360-sizer-x) - var(--echo360-sizer-size) / 2 - 2px);
+  left: calc(50% + var(--echo360-sizer-x) - var(--echo360-sizer-span));
 }
 
 .echo360-captions-sizer.is-larger {
-  left: calc(50% + var(--echo360-sizer-x) + var(--echo360-sizer-size) / 2 + 2px);
+  left: calc(50% + var(--echo360-sizer-x) + var(--echo360-sizer-span));
 }
 
 /* Strokes, not text. A typed plus or minus sits high in its line box and no

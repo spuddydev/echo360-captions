@@ -17,6 +17,8 @@
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const SCALE_PROP = '--echo360-caption-scale';
   const SIZER_X_PROP = '--echo360-sizer-x';
+  const SIZER_Y_PROP = '--echo360-sizer-y';
+  const SIZER_SPAN_PROP = '--echo360-sizer-span';
   const PROXIMITY_SLACK = 16;
   const CHROME_POLL_MS = 200;
   const IDLE_HIDE_MS = 3000;
@@ -44,6 +46,8 @@
   let controlsEngaged = false;
   let controlsActive = false;
   let heldSizerX = null;
+  let heldSizerY = null;
+  let heldSizerSpan = null;
   let pointerX = 0;
   let pointerY = 0;
   let proximityPending = false;
@@ -197,18 +201,31 @@
     return Math.min(SCALE_MAX, Math.max(SCALE_MIN, stepped));
   }
 
-  // The controls sit over the caption's trailing end, so their offset follows
-  // the box's half width. While they are awake that offset is held, because
-  // every press widens the caption and would otherwise walk them out from under
-  // the pointer before it could press again.
+  // The controls sit below the caption's trailing end, so where they land
+  // follows the box's half width and the text's own size. While they are up
+  // both are held, because a press changes the text and would otherwise walk
+  // them out from under the pointer before it could press again: sideways as
+  // the box widens, and upward as the gap and the controls themselves shrink.
   function positionSizers() {
     if (!layerEl || !overlayEl || !smallerEl) return;
-    if (controlsActive && heldSizerX !== null) return;
+    // Held for the whole time they are up. The vertical hold is the one that
+    // says so, because the sideways one is worked out while they are down too.
+    if (controlsActive && heldSizerY !== null) return;
+    // Back to the stylesheet's own placing before measuring, or each reading
+    // would be taken from the last one rather than from the text.
+    layerEl.style.removeProperty(SIZER_Y_PROP);
+    layerEl.style.removeProperty(SIZER_SPAN_PROP);
     const box = overlayEl.getBoundingClientRect();
-    if (!box.width) return;
-    const own = smallerEl.getBoundingClientRect().width;
-    heldSizerX = Math.max(0, box.width / 2 - own - 2);
+    if (!box.width || !largerEl) return;
+    const own = smallerEl.getBoundingClientRect();
+    heldSizerX = Math.max(0, box.width / 2 - own.width - 2);
     layerEl.style.setProperty(SIZER_X_PROP, `${heldSizerX.toFixed(1)}px`);
+    if (!controlsActive) return;
+    const other = largerEl.getBoundingClientRect();
+    heldSizerY = own.top + own.height / 2 - box.bottom;
+    heldSizerSpan = (other.left + other.width / 2 - (own.left + own.width / 2)) / 2;
+    layerEl.style.setProperty(SIZER_Y_PROP, `${heldSizerY.toFixed(1)}px`);
+    layerEl.style.setProperty(SIZER_SPAN_PROP, `${heldSizerSpan.toFixed(1)}px`);
   }
 
   // The controls hang below the caption, so they have to be kept inside the
@@ -395,7 +412,11 @@
   function setControlsActive(value) {
     if (controlsActive === value) return;
     controlsActive = value;
-    if (!controlsActive) heldSizerX = null;
+    if (!controlsActive) {
+      heldSizerX = null;
+      heldSizerY = null;
+      heldSizerSpan = null;
+    }
     if (layerEl) layerEl.classList.toggle('is-active', controlsActive);
     // Coming up starts the wait afresh. A caption that reshapes under a still
     // pointer can bring the controls up without a pointer move, and they would
@@ -592,6 +613,8 @@
     largerEl = null;
     controlsActive = false;
     heldSizerX = null;
+    heldSizerY = null;
+    heldSizerSpan = null;
     dragging = false;
     dragPointerId = null;
     dragMoved = false;
