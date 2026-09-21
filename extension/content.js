@@ -21,6 +21,7 @@
   const SCALE_MAX = 2;
   const SCALE_STEP = 0.1;
   const ENABLED_KEY = 'captionsEnabled';
+  const SIZE_KEY = 'captionScale';
   const storage =
     typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local
       ? chrome.storage.local
@@ -157,9 +158,10 @@
   // Snap to the step grid so a drifted or hand edited value cannot land on a
   // size the controls can never return to.
   function normaliseScale(value) {
-    const num = Number(value);
-    if (!Number.isFinite(num)) return 1;
-    const steps = Math.round((num - SCALE_MIN) / SCALE_STEP);
+    // Only a real number counts. Anything else is a missing or corrupted
+    // setting, and coercing it would quietly turn null into the smallest size.
+    if (typeof value !== 'number' || !Number.isFinite(value)) return 1;
+    const steps = Math.round((value - SCALE_MIN) / SCALE_STEP);
     const stepped = Number((SCALE_MIN + steps * SCALE_STEP).toFixed(2));
     return Math.min(SCALE_MAX, Math.max(SCALE_MIN, stepped));
   }
@@ -186,6 +188,7 @@
     if (next === captionScale) return;
     captionScale = next;
     applyScale();
+    persistSetting(SIZE_KEY, captionScale);
   }
 
   function createSizer(modifier, label, shape, direction) {
@@ -373,6 +376,15 @@
   document.addEventListener('mozfullscreenchange', bootstrap);
 
   bootstrap();
+
+  // Held on the module rather than the element, because the caption usually does
+  // not exist yet when this resolves. Creating it applies whatever is here.
+  loadSetting(SIZE_KEY, normaliseScale).then((scale) => {
+    if (scale === captionScale) return;
+    captionScale = scale;
+    applyScale();
+    console.info(`${LOG_PREFIX} restoring stored caption size: ${Math.round(scale * 100)}%`);
+  });
 
   loadSetting(ENABLED_KEY, Boolean).then((stored) => {
     if (stored && !captionsEnabled) {
