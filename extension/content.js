@@ -18,6 +18,7 @@
   const SCALE_PROP = '--echo360-caption-scale';
   const SIZER_X_PROP = '--echo360-sizer-x';
   const PROXIMITY_SLACK = 16;
+  const CHROME_POLL_MS = 200;
   const SCALE_MIN = 0.7;
   const SCALE_MAX = 2;
   const SCALE_STEP = 0.1;
@@ -45,6 +46,7 @@
   let pointerX = 0;
   let pointerY = 0;
   let proximityPending = false;
+  let chromeTimer = null;
   // Where the caption has been dragged to, as fractions of the player: the
   // centre across, and the distance from the player's bottom to the caption's
   // own bottom. Null means untouched, and untouched writes no inline position at
@@ -339,12 +341,54 @@
     applyPosition();
   }
 
+  // The player fades its own control bar away once nothing has happened for a
+  // while. The size controls are part of that same furniture, so they go when
+  // it goes. Reading the bar keeps the two in step whatever idle delay the
+  // player uses, which a wait of our own could not. The mechanism is not known,
+  // so every ordinary way of hiding a bar is covered: no box, moved off the
+  // player, or faded or hidden anywhere up the chain it hangs from.
+  function playerChromeHidden() {
+    let node = controlsEl;
+    if (!node || !node.isConnected) return false;
+    const box = node.getBoundingClientRect();
+    if (!box.width || !box.height) return true;
+    if (playerEl) {
+      const host = playerEl.getBoundingClientRect();
+      if (box.top >= host.bottom || box.bottom <= host.top) return true;
+    }
+    // No further than the player. Above that is the page, and a page that dims
+    // itself has nothing to say about the bar.
+    while (node && node !== document.body) {
+      const style = getComputedStyle(node);
+      if (style.visibility === 'hidden' || Number(style.opacity) < 0.1) return true;
+      if (node === playerEl) break;
+      node = node.parentElement;
+    }
+    return false;
+  }
+
+  // Nothing announces the bar going, because it goes precisely when nothing is
+  // happening. The look runs only while the controls are up, which is the only
+  // window where the answer changes anything.
+  function watchPlayerChrome() {
+    if (controlsActive && chromeTimer === null) {
+      chromeTimer = setInterval(() => {
+        if (pressingControl || dragging) return;
+        if (playerChromeHidden()) setControlsActive(false);
+      }, CHROME_POLL_MS);
+    } else if (!controlsActive && chromeTimer !== null) {
+      clearInterval(chromeTimer);
+      chromeTimer = null;
+    }
+  }
+
   function setControlsActive(value) {
     if (controlsActive === value) return;
     controlsActive = value;
     if (!controlsActive) heldSizerX = null;
     if (layerEl) layerEl.classList.toggle('is-active', controlsActive);
     positionSizers();
+    watchPlayerChrome();
     refreshEngagement();
   }
 
@@ -531,6 +575,7 @@
     dragStart = null;
     controlPointerId = null;
     pressingControl = false;
+    watchPlayerChrome();
   }
 
   function syncButtonState() {
