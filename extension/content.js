@@ -39,6 +39,7 @@
   let playerEl = null;
   let gridObserver = null;
   let observedGrid = null;
+  let boxObserver = null;
   let pending = false;
   let transcriptAutoOpened = false;
 
@@ -111,7 +112,6 @@
     if (layerEl) {
       layerEl.classList.toggle('is-empty', text.length === 0);
     }
-    positionSizers();
   }
 
   function schedule() {
@@ -163,7 +163,6 @@
     if (layerEl) layerEl.style.setProperty(SCALE_PROP, String(captionScale));
     if (smallerEl) smallerEl.disabled = captionScale <= SCALE_MIN;
     if (largerEl) largerEl.disabled = captionScale >= SCALE_MAX;
-    positionSizers();
   }
 
   function stepScale(direction) {
@@ -220,6 +219,12 @@
       layerEl.appendChild(smallerEl);
       layerEl.appendChild(largerEl);
       applyScale();
+      // The caption's width follows its text, its size setting and the window,
+      // because the size formula is partly a share of the viewport. Watching the
+      // box covers all three, including a fullscreen change that alters nothing
+      // else.
+      boxObserver = new ResizeObserver(positionSizers);
+      boxObserver.observe(overlayEl);
     }
     if (layerEl.parentElement !== host) {
       host.appendChild(layerEl);
@@ -229,6 +234,10 @@
   }
 
   function removeOverlay() {
+    if (boxObserver) {
+      boxObserver.disconnect();
+      boxObserver = null;
+    }
     if (layerEl && layerEl.parentNode) {
       layerEl.parentNode.removeChild(layerEl);
     }
