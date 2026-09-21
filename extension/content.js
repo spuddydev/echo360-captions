@@ -158,11 +158,14 @@
   }
 
   // The caption goes away between spoken lines and the controls go with it. That
-  // would pull them out from under someone in the middle of using them, so while
-  // they are in use the caption's own gap is not allowed to hide them.
+  // would pull them out from under someone in the middle of using them, so a gap
+  // that arrives while they are up takes the caption alone and leaves them, and
+  // their place, exactly as they were.
   function syncEmptyState() {
     if (!layerEl) return;
-    layerEl.classList.toggle('is-empty', lastText.length === 0 && !controlsEngaged);
+    const quiet = lastText.length === 0;
+    layerEl.classList.toggle('is-empty', quiet && !controlsEngaged);
+    layerEl.classList.toggle('is-quiet', quiet && controlsEngaged);
   }
 
   function refreshEngagement() {
@@ -170,7 +173,10 @@
     // the control it pressed, and treating that as engagement would pin the
     // controls up and hold the empty caption on screen after the pointer left.
     const focused = Boolean(layerEl && layerEl.querySelector(':focus-visible'));
-    const next = pressingControl || focused || dragging;
+    // Having the controls up at all counts. Before, only a press or a keyboard
+    // hold did, and a mouse press happened to leave focus behind to stand in
+    // for the rest. Nothing stands in for it now, so it is said outright.
+    const next = pressingControl || focused || dragging || controlsActive;
     if (next === controlsEngaged) return;
     controlsEngaged = next;
     syncEmptyState();
@@ -339,6 +345,7 @@
     if (!controlsActive) heldSizerX = null;
     if (layerEl) layerEl.classList.toggle('is-active', controlsActive);
     positionSizers();
+    refreshEngagement();
   }
 
   // Everything the pointer is allowed to be near: the caption, and the controls

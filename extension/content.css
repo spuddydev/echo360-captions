@@ -52,6 +52,12 @@
   display: none;
 }
 
+/* A gap in the speech while the controls are up. The caption gets out of the
+   way without taking them, or their place, with it. */
+.echo360-captions-layer.is-quiet .echo360-captions-overlay {
+  visibility: hidden;
+}
+
 .echo360-captions-layer.is-dragging .echo360-captions-overlay {
   cursor: grabbing;
 }
