@@ -397,6 +397,10 @@
     controlsActive = value;
     if (!controlsActive) heldSizerX = null;
     if (layerEl) layerEl.classList.toggle('is-active', controlsActive);
+    // Coming up starts the wait afresh. A caption that reshapes under a still
+    // pointer can bring the controls up without a pointer move, and they would
+    // otherwise be judged against a clock that stopped long ago.
+    if (controlsActive) noteActivity();
     positionSizers();
     watchPlayerChrome();
     refreshEngagement();
