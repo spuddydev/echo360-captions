@@ -473,7 +473,6 @@
     if (next === captionScale) return;
     captionScale = next;
     sizeChosen = true;
-    noteActivity();
     applyScale();
     persistSetting(SIZE_KEY, captionScale);
   }
@@ -494,6 +493,10 @@
     btn.addEventListener('pointerdown', (event) => {
       controlPointerId = event.pointerId;
       pressingControl = true;
+      // The press is what counts, not the size change. At either end of the
+      // range a press changes nothing, and the controls would fade under
+      // somebody still pressing them.
+      noteActivity();
       refreshEngagement();
     });
     btn.addEventListener('click', (event) => {
@@ -712,6 +715,9 @@
     }
     controlPointerId = null;
     pressingControl = false;
+    // Letting go starts the wait, rather than leaving it to run from whenever
+    // the press began.
+    noteActivity();
     refreshEngagement();
   };
   document.addEventListener('pointerup', endControlPress);
