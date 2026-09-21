@@ -12,6 +12,14 @@
   const BTN_CLASS = 'echo360-captions-toggle';
   const OVERLAY_CLASS = 'echo360-captions-overlay';
   const TEXT_CLASS = 'echo360-captions-text';
+  const LAYER_CLASS = 'echo360-captions-layer';
+  const SIZER_CLASS = 'echo360-captions-sizer';
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const SCALE_PROP = '--echo360-caption-scale';
+  const SIZER_X_PROP = '--echo360-sizer-x';
+  const SCALE_MIN = 0.7;
+  const SCALE_MAX = 2;
+  const SCALE_STEP = 0.1;
   const ENABLED_KEY = 'captionsEnabled';
   const storage =
     typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local
@@ -20,8 +28,12 @@
 
   let captionsEnabled = false;
   let lastText = '';
+  let layerEl = null;
   let overlayEl = null;
   let textEl = null;
+  let smallerEl = null;
+  let largerEl = null;
+  let captionScale = 1;
   let buttonEl = null;
   let controlsEl = null;
   let playerEl = null;
@@ -96,9 +108,10 @@
     if (textEl) {
       textEl.textContent = text;
     }
-    if (overlayEl) {
-      overlayEl.classList.toggle('is-empty', text.length === 0);
+    if (layerEl) {
+      layerEl.classList.toggle('is-empty', text.length === 0);
     }
+    positionSizers();
   }
 
   function schedule() {
@@ -125,6 +138,62 @@
     schedule();
   }
 
+  // Snap to the step grid so a drifted or hand edited value cannot land on a
+  // size the controls can never return to.
+  function normaliseScale(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return 1;
+    const steps = Math.round((num - SCALE_MIN) / SCALE_STEP);
+    const stepped = Number((SCALE_MIN + steps * SCALE_STEP).toFixed(2));
+    return Math.min(SCALE_MAX, Math.max(SCALE_MIN, stepped));
+  }
+
+  // The controls sit over the caption's trailing end, so their offset follows
+  // the box's half width.
+  function positionSizers() {
+    if (!layerEl || !overlayEl || !smallerEl) return;
+    const box = overlayEl.getBoundingClientRect();
+    if (!box.width) return;
+    const own = smallerEl.getBoundingClientRect().width;
+    const x = Math.max(0, box.width / 2 - own - 2);
+    layerEl.style.setProperty(SIZER_X_PROP, `${x.toFixed(1)}px`);
+  }
+
+  function applyScale() {
+    if (layerEl) layerEl.style.setProperty(SCALE_PROP, String(captionScale));
+    if (smallerEl) smallerEl.disabled = captionScale <= SCALE_MIN;
+    if (largerEl) largerEl.disabled = captionScale >= SCALE_MAX;
+    positionSizers();
+  }
+
+  function stepScale(direction) {
+    const next = normaliseScale(captionScale + direction * SCALE_STEP);
+    if (next === captionScale) return;
+    captionScale = next;
+    applyScale();
+  }
+
+  function createSizer(modifier, label, shape, direction) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `${SIZER_CLASS} ${modifier}`;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 12 12');
+    svg.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', shape);
+    svg.appendChild(path);
+    btn.appendChild(svg);
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      stepScale(direction);
+    });
+    return btn;
+  }
+
   function ensureOverlay() {
     const host = findPlayerHost();
     if (!host) return;
@@ -132,7 +201,9 @@
     if (getComputedStyle(host).position === 'static') {
       host.style.position = 'relative';
     }
-    if (!overlayEl) {
+    if (!layerEl) {
+      layerEl = document.createElement('div');
+      layerEl.className = LAYER_CLASS;
       overlayEl = document.createElement('div');
       overlayEl.className = OVERLAY_CLASS;
       overlayEl.setAttribute('aria-live', 'polite');
@@ -143,20 +214,29 @@
       textEl = document.createElement('span');
       textEl.className = TEXT_CLASS;
       overlayEl.appendChild(textEl);
+      layerEl.appendChild(overlayEl);
+      smallerEl = createSizer('is-smaller', 'Smaller captions', 'M3 6h6', -1);
+      largerEl = createSizer('is-larger', 'Larger captions', 'M3 6h6M6 3v6', 1);
+      layerEl.appendChild(smallerEl);
+      layerEl.appendChild(largerEl);
+      applyScale();
     }
-    if (overlayEl.parentElement !== host) {
-      host.appendChild(overlayEl);
-    } else if (host.lastElementChild !== overlayEl) {
-      host.appendChild(overlayEl);
+    if (layerEl.parentElement !== host) {
+      host.appendChild(layerEl);
+    } else if (host.lastElementChild !== layerEl) {
+      host.appendChild(layerEl);
     }
   }
 
   function removeOverlay() {
-    if (overlayEl && overlayEl.parentNode) {
-      overlayEl.parentNode.removeChild(overlayEl);
+    if (layerEl && layerEl.parentNode) {
+      layerEl.parentNode.removeChild(layerEl);
     }
+    layerEl = null;
     overlayEl = null;
     textEl = null;
+    smallerEl = null;
+    largerEl = null;
   }
 
   function syncButtonState() {

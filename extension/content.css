@@ -29,26 +29,99 @@
   color: #000;
 }
 
-.echo360-captions-overlay {
-  background: rgba(0, 0, 0, 0.72);
-  border-radius: 4px;
+/* Carries the position and the size controls. The caption box keeps every
+   visual property, so its rendering is unchanged. */
+.echo360-captions-layer {
+  --echo360-caption-font: calc(clamp(14px, 2.2vw, 22px) * var(--echo360-caption-scale, 1));
+  --echo360-sizer-size: max(17px, calc(var(--echo360-caption-font) * 1.02));
+  --echo360-sizer-gap: max(5px, calc(var(--echo360-caption-font) * 0.3));
+  --echo360-sizer-x: 0px;
   bottom: 12%;
-  color: #fff;
-  font:
-    500 clamp(14px, 2.2vw, 22px) / 1.35 system-ui,
-    sans-serif;
   left: 50%;
   max-width: 80%;
-  padding: 6px 12px;
   pointer-events: none;
   position: absolute;
-  text-align: center;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   transform: translateX(-50%);
-  white-space: pre-wrap;
   z-index: 2147483646;
 }
 
-.echo360-captions-overlay.is-empty {
+.echo360-captions-layer.is-empty {
   display: none;
+}
+
+.echo360-captions-overlay {
+  background: rgba(0, 0, 0, 0.72);
+  border-radius: 4px;
+  color: #fff;
+  font-family: system-ui, sans-serif;
+  font-size: var(--echo360-caption-font);
+  font-weight: 500;
+  line-height: 1.35;
+  padding: 6px 12px;
+  pointer-events: none;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  white-space: pre-wrap;
+}
+
+/* Above the caption rather than beside it. The box grows sideways from its
+   centre, so anything flanking it is shoved along on every press and leaves the
+   pointer behind. */
+.echo360-captions-sizer {
+  align-items: center;
+  appearance: none;
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  border-radius: 50%;
+  bottom: calc(100% + var(--echo360-sizer-gap));
+  color: rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+  display: flex;
+  height: var(--echo360-sizer-size);
+  justify-content: center;
+  line-height: 0;
+  margin: 0;
+  padding: 0;
+  pointer-events: auto;
+  position: absolute;
+  transform: translateX(-50%);
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+  width: var(--echo360-sizer-size);
+}
+
+.echo360-captions-sizer.is-smaller {
+  left: calc(50% + var(--echo360-sizer-x) - var(--echo360-sizer-size) / 2 - 2px);
+}
+
+.echo360-captions-sizer.is-larger {
+  left: calc(50% + var(--echo360-sizer-x) + var(--echo360-sizer-size) / 2 + 2px);
+}
+
+/* Strokes, not text. A typed plus or minus sits high in its line box and no
+   amount of centring brings the ink back to the middle. */
+.echo360-captions-sizer svg {
+  display: block;
+  fill: none;
+  height: 58%;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-width: 1.6;
+  width: 58%;
+}
+
+.echo360-captions-sizer:hover {
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+}
+
+.echo360-captions-sizer:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 2px;
+}
+
+.echo360-captions-sizer[disabled] {
+  cursor: default;
+  opacity: 0.35;
 }
