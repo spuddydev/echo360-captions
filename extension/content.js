@@ -36,6 +36,7 @@
   let largerEl = null;
   let captionScale = 1;
   let pressingControl = false;
+  let controlPointerId = null;
   let controlsEngaged = false;
   let controlsActive = false;
   let heldSizerX = null;
@@ -273,8 +274,12 @@
     );
   }
 
-  function endDrag(event) {
+  // Only the pointer that started the gesture may end it, and only a deliberate
+  // release counts as a press worth handing on. A cancelled or stolen gesture
+  // was not a click on anything.
+  function endDrag(event, deliberate) {
     if (dragPointerId === null) return;
+    if (event && event.pointerId !== undefined && event.pointerId !== dragPointerId) return;
     const id = dragPointerId;
     const moved = dragMoved;
     dragPointerId = null;
@@ -286,11 +291,12 @@
       overlayEl.releasePointerCapture(id);
     }
     refreshEngagement();
-    if (!moved && event) forwardClick(event.clientX, event.clientY);
+    if (deliberate && !moved && event) forwardClick(event.clientX, event.clientY);
   }
 
   function beginDrag(event) {
     if (event.button !== undefined && event.button !== 0) return;
+    if (dragPointerId !== null) return;
     const origin = readPosition();
     if (!origin) return;
     dragPointerId = event.pointerId;
@@ -381,7 +387,8 @@
     path.setAttribute('d', shape);
     svg.appendChild(path);
     btn.appendChild(svg);
-    btn.addEventListener('pointerdown', () => {
+    btn.addEventListener('pointerdown', (event) => {
+      controlPointerId = event.pointerId;
       pressingControl = true;
       refreshEngagement();
     });
@@ -418,9 +425,9 @@
       });
       overlayEl.addEventListener('pointerdown', beginDrag);
       overlayEl.addEventListener('pointermove', duringDrag);
-      overlayEl.addEventListener('pointerup', endDrag);
-      overlayEl.addEventListener('pointercancel', endDrag);
-      overlayEl.addEventListener('lostpointercapture', endDrag);
+      overlayEl.addEventListener('pointerup', (event) => endDrag(event, true));
+      overlayEl.addEventListener('pointercancel', (event) => endDrag(event, false));
+      overlayEl.addEventListener('lostpointercapture', (event) => endDrag(event, false));
       // The box keeps pre-wrap, so the text gets its own node rather than being
       // written over the box itself. Anything else placed in the box would be
       // wiped on the next transcript line.
@@ -450,7 +457,7 @@
       // Going fullscreen moves the caption into a different element of a
       // different size, which is no place to be mid gesture and no guarantee the
       // old spot still fits.
-      endDrag(null);
+      endDrag(null, false);
       host.appendChild(layerEl);
       reclampPosition();
     } else if (host.lastElementChild !== layerEl && !dragging) {
@@ -478,6 +485,8 @@
     dragPointerId = null;
     dragMoved = false;
     dragStart = null;
+    controlPointerId = null;
+    pressingControl = false;
   }
 
   function syncButtonState() {
@@ -581,7 +590,17 @@
     { passive: true }
   );
 
-  const endControlPress = () => {
+  const endControlPress = (event) => {
+    if (!pressingControl) return;
+    if (
+      event &&
+      event.pointerId !== undefined &&
+      controlPointerId !== null &&
+      event.pointerId !== controlPointerId
+    ) {
+      return;
+    }
+    controlPointerId = null;
     pressingControl = false;
     refreshEngagement();
   };
@@ -596,7 +615,7 @@
   // player can stop being safely inside it. Going fullscreen also swaps the
   // element the caption lives in, which is no place to be mid gesture.
   const onViewportChange = () => {
-    endDrag(null);
+    endDrag(null, false);
     reclampPosition();
   };
   window.addEventListener('resize', onViewportChange);
