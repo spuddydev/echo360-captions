@@ -35,6 +35,7 @@
   let smallerEl = null;
   let largerEl = null;
   let captionScale = 1;
+  let sizeChosen = false;
   let pressingControl = false;
   let controlPointerId = null;
   let controlsEngaged = false;
@@ -370,6 +371,7 @@
     const next = normaliseScale(captionScale + direction * SCALE_STEP);
     if (next === captionScale) return;
     captionScale = next;
+    sizeChosen = true;
     applyScale();
     persistSetting(SIZE_KEY, captionScale);
   }
@@ -628,7 +630,9 @@
   // Held on the module rather than the element, because the caption usually does
   // not exist yet when this resolves. Creating it applies whatever is here.
   loadSetting(SIZE_KEY, normaliseScale).then((scale) => {
-    if (scale === captionScale) return;
+    // Somebody quick off the mark can change the size before the saved one
+    // arrives, and their choice is the newer of the two.
+    if (sizeChosen || scale === captionScale) return;
     captionScale = scale;
     applyScale();
     console.info(`${LOG_PREFIX} restoring stored caption size: ${Math.round(scale * 100)}%`);
