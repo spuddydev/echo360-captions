@@ -437,12 +437,22 @@
       // because the size formula is partly a share of the viewport. Watching the
       // box covers all three, including a fullscreen change that alters nothing
       // else.
-      boxObserver = new ResizeObserver(positionSizers);
+      boxObserver = new ResizeObserver(() => {
+        positionSizers();
+        // A caption dragged near an edge and then made bigger, or simply handed
+        // a longer line, would otherwise keep a place that no longer fits.
+        reclampPosition();
+      });
       boxObserver.observe(overlayEl);
       applyPosition();
     }
     if (layerEl.parentElement !== host) {
+      // Going fullscreen moves the caption into a different element of a
+      // different size, which is no place to be mid gesture and no guarantee the
+      // old spot still fits.
+      endDrag(null);
       host.appendChild(layerEl);
+      reclampPosition();
     } else if (host.lastElementChild !== layerEl && !dragging) {
       // Reordering mid gesture is not worth the risk to the pointer capture.
       host.appendChild(layerEl);
