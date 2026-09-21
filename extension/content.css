@@ -36,7 +36,10 @@
   --echo360-sizer-size: max(17px, calc(var(--echo360-caption-font) * 1.02));
   --echo360-sizer-gap: max(5px, calc(var(--echo360-caption-font) * 0.3));
   --echo360-sizer-x: 0px;
-  bottom: 12%;
+  /* The usual twelfth up from the bottom, unless the controls hanging below
+     would fall out of a short player, in which case it lifts just enough to
+     keep them in. */
+  bottom: max(12%, calc(var(--echo360-sizer-size) + var(--echo360-sizer-gap) + 4px));
   left: 50%;
   max-width: 80%;
   pointer-events: none;
