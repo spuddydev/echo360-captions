@@ -598,6 +598,7 @@
     dragStart = null;
     controlPointerId = null;
     pressingControl = false;
+    controlsEngaged = false;
     watchPlayerChrome();
   }
 
