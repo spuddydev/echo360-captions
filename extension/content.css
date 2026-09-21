@@ -116,9 +116,10 @@
 }
 
 /* Quiet until the pointer comes near the caption, and reachable by keyboard
-   whether it is near or not. */
+   whether it is near or not. Focus counts only while the browser is showing it,
+   which a mouse press does not, so pressing one leaves nothing pinned up. */
 .echo360-captions-layer.is-active .echo360-captions-sizer,
-.echo360-captions-layer:focus-within .echo360-captions-sizer {
+.echo360-captions-layer:has(:focus-visible) .echo360-captions-sizer {
   opacity: 0.62;
   pointer-events: auto;
 }
@@ -155,7 +156,7 @@
 }
 
 .echo360-captions-layer.is-active .echo360-captions-sizer[disabled],
-.echo360-captions-layer:focus-within .echo360-captions-sizer[disabled] {
+.echo360-captions-layer:has(:focus-visible) .echo360-captions-sizer[disabled] {
   cursor: default;
   opacity: 0.22;
 }

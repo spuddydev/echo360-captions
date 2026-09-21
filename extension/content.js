@@ -166,7 +166,10 @@
   }
 
   function refreshEngagement() {
-    const focused = Boolean(layerEl && layerEl.contains(document.activeElement));
+    // Focus counts only while the browser is showing it. A mouse press focuses
+    // the control it pressed, and treating that as engagement would pin the
+    // controls up and hold the empty caption on screen after the pointer left.
+    const focused = Boolean(layerEl && layerEl.querySelector(':focus-visible'));
     const next = pressingControl || focused || dragging;
     if (next === controlsEngaged) return;
     controlsEngaged = next;
