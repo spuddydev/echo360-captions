@@ -11,6 +11,7 @@
   const TRANSCRIPTS_TAB_SELECTOR = '#transcripts-tab';
   const BTN_CLASS = 'echo360-captions-toggle';
   const OVERLAY_CLASS = 'echo360-captions-overlay';
+  const TEXT_CLASS = 'echo360-captions-text';
   const STORAGE_KEY = 'captionsEnabled';
   const storage =
     typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local
@@ -20,6 +21,7 @@
   let captionsEnabled = false;
   let lastText = '';
   let overlayEl = null;
+  let textEl = null;
   let buttonEl = null;
   let controlsEl = null;
   let playerEl = null;
@@ -91,8 +93,10 @@
     const text = readActiveText();
     if (text === lastText) return;
     lastText = text;
+    if (textEl) {
+      textEl.textContent = text;
+    }
     if (overlayEl) {
-      overlayEl.textContent = text;
       overlayEl.classList.toggle('is-empty', text.length === 0);
     }
   }
@@ -133,6 +137,12 @@
       overlayEl.className = OVERLAY_CLASS;
       overlayEl.setAttribute('aria-live', 'polite');
       overlayEl.setAttribute('aria-atomic', 'true');
+      // The box keeps pre-wrap, so the text gets its own node rather than being
+      // written over the box itself. Anything else placed in the box would be
+      // wiped on the next transcript line.
+      textEl = document.createElement('span');
+      textEl.className = TEXT_CLASS;
+      overlayEl.appendChild(textEl);
     }
     if (overlayEl.parentElement !== host) {
       host.appendChild(overlayEl);
@@ -146,6 +156,7 @@
       overlayEl.parentNode.removeChild(overlayEl);
     }
     overlayEl = null;
+    textEl = null;
   }
 
   function syncButtonState() {
