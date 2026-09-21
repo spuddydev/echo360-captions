@@ -42,6 +42,16 @@
   let pointerX = 0;
   let pointerY = 0;
   let proximityPending = false;
+  // Where the caption has been dragged to, as fractions of the player: the
+  // centre across, and the distance from the player's bottom to the caption's
+  // own bottom. Null means untouched, and untouched writes no inline position at
+  // all, so the default stays exactly what the stylesheet says. It never reaches
+  // storage, which is what makes it last for the viewing and no longer.
+  let position = null;
+  let dragging = false;
+  let dragPointerId = null;
+  let dragMoved = false;
+  let dragStart = null;
   let buttonEl = null;
   let controlsEl = null;
   let playerEl = null;
@@ -154,7 +164,7 @@
 
   function refreshEngagement() {
     const focused = Boolean(layerEl && layerEl.contains(document.activeElement));
-    const next = pressingControl || focused;
+    const next = pressingControl || focused || dragging;
     if (next === controlsEngaged) return;
     controlsEngaged = next;
     syncEmptyState();
@@ -183,6 +193,133 @@
     const own = smallerEl.getBoundingClientRect().width;
     heldSizerX = Math.max(0, box.width / 2 - own - 2);
     layerEl.style.setProperty(SIZER_X_PROP, `${heldSizerX.toFixed(1)}px`);
+  }
+
+  // The controls hang below the caption, so they have to be kept inside the
+  // player too.
+  function controlsReach() {
+    if (!layerEl || !largerEl) return 0;
+    return Math.max(
+      0,
+      largerEl.getBoundingClientRect().bottom - layerEl.getBoundingClientRect().bottom
+    );
+  }
+
+  function clampPosition(next) {
+    const host = layerEl && layerEl.parentElement;
+    if (!host) return next;
+    const hostBox = host.getBoundingClientRect();
+    const own = layerEl.getBoundingClientRect();
+    if (!hostBox.width || !hostBox.height || !own.width) return next;
+    const edge = 4;
+    const halfW = own.width / 2 + edge;
+    const lowest = (controlsReach() + edge) / hostBox.height;
+    const highest = (hostBox.height - own.height - edge) / hostBox.height;
+    return {
+      left: Math.min(
+        (hostBox.width - halfW) / hostBox.width,
+        Math.max(halfW / hostBox.width, next.left)
+      ),
+      bottom: Math.min(Math.max(lowest, next.bottom), Math.max(lowest, highest)),
+    };
+  }
+
+  function applyPosition() {
+    if (!layerEl) return;
+    if (!position) {
+      layerEl.style.removeProperty('left');
+      layerEl.style.removeProperty('bottom');
+      return;
+    }
+    layerEl.style.left = `${(position.left * 100).toFixed(3)}%`;
+    layerEl.style.bottom = `${(position.bottom * 100).toFixed(3)}%`;
+  }
+
+  function reclampPosition() {
+    if (!position || !layerEl) return;
+    position = clampPosition(position);
+    applyPosition();
+  }
+
+  function readPosition() {
+    const host = layerEl && layerEl.parentElement;
+    if (!host) return null;
+    const hostBox = host.getBoundingClientRect();
+    const own = layerEl.getBoundingClientRect();
+    if (!hostBox.width || !hostBox.height) return null;
+    return {
+      left: (own.left + own.width / 2 - hostBox.left) / hostBox.width,
+      bottom: (hostBox.bottom - own.bottom) / hostBox.height,
+    };
+  }
+
+  // A press that never moved was a click on the video, not a grab of the
+  // caption, so it is handed to whatever sits underneath.
+  function forwardClick(x, y) {
+    if (!layerEl) return;
+    layerEl.classList.add('is-passing-through');
+    const beneath = document.elementFromPoint(x, y);
+    layerEl.classList.remove('is-passing-through');
+    if (!beneath || layerEl.contains(beneath)) return;
+    beneath.dispatchEvent(
+      new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        view: window,
+        clientX: x,
+        clientY: y,
+      })
+    );
+  }
+
+  function endDrag(event) {
+    if (dragPointerId === null) return;
+    const id = dragPointerId;
+    const moved = dragMoved;
+    dragPointerId = null;
+    dragMoved = false;
+    dragStart = null;
+    dragging = false;
+    if (layerEl) layerEl.classList.remove('is-dragging');
+    if (overlayEl && overlayEl.hasPointerCapture && overlayEl.hasPointerCapture(id)) {
+      overlayEl.releasePointerCapture(id);
+    }
+    refreshEngagement();
+    if (!moved && event) forwardClick(event.clientX, event.clientY);
+  }
+
+  function beginDrag(event) {
+    if (event.button !== undefined && event.button !== 0) return;
+    const origin = readPosition();
+    if (!origin) return;
+    dragPointerId = event.pointerId;
+    dragMoved = false;
+    dragging = false;
+    dragStart = { x: event.clientX, y: event.clientY, origin };
+    if (overlayEl.setPointerCapture) overlayEl.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  }
+
+  function duringDrag(event) {
+    if (dragPointerId !== event.pointerId || !dragStart) return;
+    const host = layerEl && layerEl.parentElement;
+    if (!host) return;
+    const dx = event.clientX - dragStart.x;
+    const dy = event.clientY - dragStart.y;
+    if (!dragMoved && Math.hypot(dx, dy) < 4) return;
+    if (!dragMoved) {
+      dragMoved = true;
+      dragging = true;
+      layerEl.classList.add('is-dragging');
+      refreshEngagement();
+    }
+    const hostBox = host.getBoundingClientRect();
+    position = clampPosition({
+      left: dragStart.origin.left + dx / hostBox.width,
+      bottom: dragStart.origin.bottom - dy / hostBox.height,
+    });
+    applyPosition();
   }
 
   function setControlsActive(value) {
@@ -272,6 +409,18 @@
       overlayEl.className = OVERLAY_CLASS;
       overlayEl.setAttribute('aria-live', 'polite');
       overlayEl.setAttribute('aria-atomic', 'true');
+      // The caption's own click never travels on. Whether a press deserves to
+      // reach the video is decided when the pointer is released, and forwarded
+      // deliberately, otherwise finishing a drag would also pause the lecture.
+      overlayEl.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      });
+      overlayEl.addEventListener('pointerdown', beginDrag);
+      overlayEl.addEventListener('pointermove', duringDrag);
+      overlayEl.addEventListener('pointerup', endDrag);
+      overlayEl.addEventListener('pointercancel', endDrag);
+      overlayEl.addEventListener('lostpointercapture', endDrag);
       // The box keeps pre-wrap, so the text gets its own node rather than being
       // written over the box itself. Anything else placed in the box would be
       // wiped on the next transcript line.
@@ -290,10 +439,12 @@
       // else.
       boxObserver = new ResizeObserver(positionSizers);
       boxObserver.observe(overlayEl);
+      applyPosition();
     }
     if (layerEl.parentElement !== host) {
       host.appendChild(layerEl);
-    } else if (host.lastElementChild !== layerEl) {
+    } else if (host.lastElementChild !== layerEl && !dragging) {
+      // Reordering mid gesture is not worth the risk to the pointer capture.
       host.appendChild(layerEl);
     }
   }
@@ -313,6 +464,10 @@
     largerEl = null;
     controlsActive = false;
     heldSizerX = null;
+    dragging = false;
+    dragPointerId = null;
+    dragMoved = false;
+    dragStart = null;
   }
 
   function syncButtonState() {
@@ -426,6 +581,18 @@
   document.addEventListener('fullscreenchange', bootstrap);
   document.addEventListener('webkitfullscreenchange', bootstrap);
   document.addEventListener('mozfullscreenchange', bootstrap);
+
+  // The caption's width follows the window, so a spot that was safely inside the
+  // player can stop being safely inside it. Going fullscreen also swaps the
+  // element the caption lives in, which is no place to be mid gesture.
+  const onViewportChange = () => {
+    endDrag(null);
+    reclampPosition();
+  };
+  window.addEventListener('resize', onViewportChange);
+  document.addEventListener('fullscreenchange', onViewportChange);
+  document.addEventListener('webkitfullscreenchange', onViewportChange);
+  document.addEventListener('mozfullscreenchange', onViewportChange);
 
   bootstrap();
 

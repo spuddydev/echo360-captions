@@ -49,6 +49,18 @@
   display: none;
 }
 
+.echo360-captions-layer.is-dragging .echo360-captions-overlay {
+  cursor: grabbing;
+}
+
+/* Held for the instant it takes to find what sits under the pointer. The
+   caption sets pointer events back on for itself, so hiding the layer alone
+   would still find the caption. */
+.echo360-captions-layer.is-passing-through,
+.echo360-captions-layer.is-passing-through * {
+  pointer-events: none;
+}
+
 .echo360-captions-overlay {
   background: rgba(0, 0, 0, 0.72);
   border-radius: 4px;
@@ -57,9 +69,14 @@
   font-size: var(--echo360-caption-font);
   font-weight: 500;
   line-height: 1.35;
+  cursor: grab;
   padding: 6px 12px;
-  pointer-events: none;
+  /* The caption catches the pointer so it can be dragged. A press that does not
+     move is handed on to whatever sits underneath, so clicking the video still
+     reaches it. */
+  pointer-events: auto;
   text-align: center;
+  touch-action: none;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   white-space: pre-wrap;
 }
