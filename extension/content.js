@@ -12,7 +12,7 @@
   const BTN_CLASS = 'echo360-captions-toggle';
   const OVERLAY_CLASS = 'echo360-captions-overlay';
   const TEXT_CLASS = 'echo360-captions-text';
-  const STORAGE_KEY = 'captionsEnabled';
+  const ENABLED_KEY = 'captionsEnabled';
   const storage =
     typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local
       ? chrome.storage.local
@@ -165,30 +165,32 @@
     buttonEl.classList.toggle('is-active', captionsEnabled);
   }
 
-  function persistState(value) {
+  function persistSetting(key, value) {
     if (!storage) return;
     try {
-      const result = storage.set({ [STORAGE_KEY]: value });
+      const result = storage.set({ [key]: value });
       if (result && typeof result.catch === 'function') {
-        result.catch((err) => console.warn(`${LOG_PREFIX} failed to persist state`, err));
+        result.catch((err) => console.warn(`${LOG_PREFIX} failed to persist ${key}`, err));
       }
     } catch (err) {
-      console.warn(`${LOG_PREFIX} failed to persist state`, err);
+      console.warn(`${LOG_PREFIX} failed to persist ${key}`, err);
     }
   }
 
-  function loadStoredState() {
-    if (!storage) return Promise.resolve(false);
+  // Each setting brings its own coercion, which also supplies the default for a
+  // value that is missing, unreadable or malformed.
+  function loadSetting(key, coerce) {
+    if (!storage) return Promise.resolve(coerce(undefined));
     return new Promise((resolve) => {
       try {
-        const handle = (result) => resolve(Boolean(result && result[STORAGE_KEY]));
-        const maybe = storage.get(STORAGE_KEY, handle);
+        const handle = (result) => resolve(coerce(result ? result[key] : undefined));
+        const maybe = storage.get(key, handle);
         if (maybe && typeof maybe.then === 'function') {
-          maybe.then(handle).catch(() => resolve(false));
+          maybe.then(handle).catch(() => resolve(coerce(undefined)));
         }
       } catch (err) {
-        console.warn(`${LOG_PREFIX} failed to read stored state`, err);
-        resolve(false);
+        console.warn(`${LOG_PREFIX} failed to read ${key}`, err);
+        resolve(coerce(undefined));
       }
     });
   }
@@ -205,7 +207,7 @@
     } else {
       removeOverlay();
     }
-    if (persist) persistState(enabled);
+    if (persist) persistSetting(ENABLED_KEY, enabled);
   }
 
   function toggleCaptions() {
@@ -254,7 +256,7 @@
 
   bootstrap();
 
-  loadStoredState().then((stored) => {
+  loadSetting(ENABLED_KEY, Boolean).then((stored) => {
     if (stored && !captionsEnabled) {
       console.info(`${LOG_PREFIX} restoring stored captions preference: on`);
       setCaptionsEnabled(true, { persist: false });
