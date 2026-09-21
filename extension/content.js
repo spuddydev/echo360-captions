@@ -427,6 +427,11 @@
   function evaluateProximity() {
     proximityPending = false;
     if (!layerEl || !overlayEl || !captionsEnabled) return;
+    // A press or a drag already under way is never interrupted by the pointer
+    // wandering, the same way the look does not interrupt one. Taking a control
+    // away mid press loses the press with it, because what is released over is
+    // no longer the thing that was pressed.
+    if (pressingControl || dragging) return;
     const box = overlayEl.getBoundingClientRect();
     if (!box.width) {
       setControlsActive(false);
