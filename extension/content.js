@@ -17,8 +17,8 @@
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const SCALE_PROP = '--echo360-caption-scale';
   const SIZER_X_PROP = '--echo360-sizer-x';
-  const SIZER_Y_PROP = '--echo360-sizer-y';
-  const SIZER_SPAN_PROP = '--echo360-sizer-span';
+  const SIZER_SIZE_PROP = '--echo360-sizer-size';
+  const SIZER_GAP_PROP = '--echo360-sizer-gap';
   const PROXIMITY_SLACK = 16;
   const CHROME_POLL_MS = 200;
   const IDLE_HIDE_MS = 3000;
@@ -46,8 +46,7 @@
   let controlsEngaged = false;
   let controlsActive = false;
   let heldSizerX = null;
-  let heldSizerY = null;
-  let heldSizerSpan = null;
+  let heldSizerSize = null;
   let pointerX = 0;
   let pointerY = 0;
   let proximityPending = false;
@@ -206,26 +205,31 @@
   // both are held, because a press changes the text and would otherwise walk
   // them out from under the pointer before it could press again: sideways as
   // the box widens, and upward as the gap and the controls themselves shrink.
+  //
+  // What is held is their size and the gap below the caption, which is what
+  // everything else is worked out from: where each one sits, how far apart they
+  // are, and how much room the caption leaves below itself for them. Holding
+  // those two keeps the pair still and keeps the room that was made for it,
+  // where holding the results alone would let the size float free of both.
   function positionSizers() {
     if (!layerEl || !overlayEl || !smallerEl) return;
-    // Held for the whole time they are up. The vertical hold is the one that
-    // says so, because the sideways one is worked out while they are down too.
-    if (controlsActive && heldSizerY !== null) return;
-    // Back to the stylesheet's own placing before measuring, or each reading
+    // Held for the whole time they are up. The size hold is the one that says
+    // so, because the sideways one is worked out while they are down too.
+    if (controlsActive && heldSizerSize !== null) return;
+    // Back to the stylesheet's own sizing before measuring, or each reading
     // would be taken from the last one rather than from the text.
-    layerEl.style.removeProperty(SIZER_Y_PROP);
-    layerEl.style.removeProperty(SIZER_SPAN_PROP);
+    layerEl.style.removeProperty(SIZER_SIZE_PROP);
+    layerEl.style.removeProperty(SIZER_GAP_PROP);
     const box = overlayEl.getBoundingClientRect();
-    if (!box.width || !largerEl) return;
+    if (!box.width) return;
     const own = smallerEl.getBoundingClientRect();
+    if (!own.width) return;
     heldSizerX = Math.max(0, box.width / 2 - own.width - 2);
     layerEl.style.setProperty(SIZER_X_PROP, `${heldSizerX.toFixed(1)}px`);
     if (!controlsActive) return;
-    const other = largerEl.getBoundingClientRect();
-    heldSizerY = own.top + own.height / 2 - box.bottom;
-    heldSizerSpan = (other.left + other.width / 2 - (own.left + own.width / 2)) / 2;
-    layerEl.style.setProperty(SIZER_Y_PROP, `${heldSizerY.toFixed(1)}px`);
-    layerEl.style.setProperty(SIZER_SPAN_PROP, `${heldSizerSpan.toFixed(1)}px`);
+    heldSizerSize = own.width;
+    layerEl.style.setProperty(SIZER_SIZE_PROP, `${heldSizerSize.toFixed(1)}px`);
+    layerEl.style.setProperty(SIZER_GAP_PROP, `${(own.top - box.bottom).toFixed(1)}px`);
   }
 
   // The controls hang below the caption, so they have to be kept inside the
@@ -414,8 +418,7 @@
     controlsActive = value;
     if (!controlsActive) {
       heldSizerX = null;
-      heldSizerY = null;
-      heldSizerSpan = null;
+      heldSizerSize = null;
     }
     if (layerEl) layerEl.classList.toggle('is-active', controlsActive);
     // Coming up starts the wait afresh. A caption that reshapes under a still
@@ -613,8 +616,7 @@
     largerEl = null;
     controlsActive = false;
     heldSizerX = null;
-    heldSizerY = null;
-    heldSizerSpan = null;
+    heldSizerSize = null;
     dragging = false;
     dragPointerId = null;
     dragMoved = false;
