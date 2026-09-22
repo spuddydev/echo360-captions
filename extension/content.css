@@ -152,7 +152,11 @@
 
 /* Only while they are up. A sleeping control is not hit testable, and some
    engines keep the hover state on it until the pointer moves again, which would
-   leave it looking live while nothing can press it. */
+   leave it looking live while nothing can press it. Measured on this branch
+   before the controls were pinned: fully opaque and reported as hovered while
+   nothing could press it. Pinning them happens to invalidate the style and
+   clear the hover as a side effect, so this is what makes it right on purpose
+   rather than by accident. */
 .echo360-captions-layer.is-active .echo360-captions-sizer:hover,
 .echo360-captions-layer:has(:focus-visible) .echo360-captions-sizer:hover {
   background: rgba(0, 0, 0, 0.75);
