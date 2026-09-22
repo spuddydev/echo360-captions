@@ -17,6 +17,11 @@
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const SCALE_PROP = '--echo360-caption-scale';
   const SIZER_X_PROP = '--echo360-sizer-x';
+  const SIZER_SIZE_PROP = '--echo360-sizer-size';
+  const SIZER_GAP_PROP = '--echo360-sizer-gap';
+  const PROXIMITY_SLACK = 16;
+  const CHROME_POLL_MS = 200;
+  const IDLE_HIDE_MS = 3000;
   const SCALE_MIN = 0.7;
   const SCALE_MAX = 2;
   const SCALE_STEP = 0.1;
@@ -41,9 +46,12 @@
   let controlsEngaged = false;
   let controlsActive = false;
   let heldSizerX = null;
+  let heldSizerSize = null;
   let pointerX = 0;
   let pointerY = 0;
   let proximityPending = false;
+  let chromeTimer = null;
+  let lastActivityAt = 0;
   // Where the caption has been dragged to, as fractions of the player: the
   // centre across, and the distance from the player's bottom to the caption's
   // own bottom. Null means untouched, and untouched writes no inline position at
@@ -157,16 +165,25 @@
   }
 
   // The caption goes away between spoken lines and the controls go with it. That
-  // would pull them out from under someone in the middle of using them, so while
-  // they are in use the caption's own gap is not allowed to hide them.
+  // would pull them out from under someone in the middle of using them, so a gap
+  // that arrives while they are up takes the caption alone and leaves them, and
+  // their place, exactly as they were.
   function syncEmptyState() {
     if (!layerEl) return;
-    layerEl.classList.toggle('is-empty', lastText.length === 0 && !controlsEngaged);
+    const quiet = lastText.length === 0;
+    layerEl.classList.toggle('is-empty', quiet && !controlsEngaged);
+    layerEl.classList.toggle('is-quiet', quiet && controlsEngaged);
   }
 
   function refreshEngagement() {
-    const focused = Boolean(layerEl && layerEl.contains(document.activeElement));
-    const next = pressingControl || focused || dragging;
+    // Focus counts only while the browser is showing it. A mouse press focuses
+    // the control it pressed, and treating that as engagement would pin the
+    // controls up and hold the empty caption on screen after the pointer left.
+    const focused = Boolean(layerEl && layerEl.querySelector(':focus-visible'));
+    // Having the controls up at all counts. Before, only a press or a keyboard
+    // hold did, and a mouse press happened to leave focus behind to stand in
+    // for the rest. Nothing stands in for it now, so it is said outright.
+    const next = pressingControl || focused || dragging || controlsActive;
     if (next === controlsEngaged) return;
     controlsEngaged = next;
     syncEmptyState();
@@ -183,18 +200,36 @@
     return Math.min(SCALE_MAX, Math.max(SCALE_MIN, stepped));
   }
 
-  // The controls sit over the caption's trailing end, so their offset follows
-  // the box's half width. While they are awake that offset is held, because
-  // every press widens the caption and would otherwise walk them out from under
-  // the pointer before it could press again.
+  // The controls sit below the caption's trailing end, so where they land
+  // follows the box's half width and the text's own size. While they are up
+  // both are held, because a press changes the text and would otherwise walk
+  // them out from under the pointer before it could press again: sideways as
+  // the box widens, and upward as the gap and the controls themselves shrink.
+  //
+  // What is held is their size and the gap below the caption, which is what
+  // everything else is worked out from: where each one sits, how far apart they
+  // are, and how much room the caption leaves below itself for them. Holding
+  // those two keeps the pair still and keeps the room that was made for it,
+  // where holding the results alone would let the size float free of both.
   function positionSizers() {
     if (!layerEl || !overlayEl || !smallerEl) return;
-    if (controlsActive && heldSizerX !== null) return;
+    // Held for the whole time they are up. The size hold is the one that says
+    // so, because the sideways one is worked out while they are down too.
+    if (controlsActive && heldSizerSize !== null) return;
+    // Back to the stylesheet's own sizing before measuring, or each reading
+    // would be taken from the last one rather than from the text.
+    layerEl.style.removeProperty(SIZER_SIZE_PROP);
+    layerEl.style.removeProperty(SIZER_GAP_PROP);
     const box = overlayEl.getBoundingClientRect();
     if (!box.width) return;
-    const own = smallerEl.getBoundingClientRect().width;
-    heldSizerX = Math.max(0, box.width / 2 - own - 2);
+    const own = smallerEl.getBoundingClientRect();
+    if (!own.width) return;
+    heldSizerX = Math.max(0, box.width / 2 - own.width - 2);
     layerEl.style.setProperty(SIZER_X_PROP, `${heldSizerX.toFixed(1)}px`);
+    if (!controlsActive) return;
+    heldSizerSize = own.width;
+    layerEl.style.setProperty(SIZER_SIZE_PROP, `${heldSizerSize.toFixed(1)}px`);
+    layerEl.style.setProperty(SIZER_GAP_PROP, `${(own.top - box.bottom).toFixed(1)}px`);
   }
 
   // The controls hang below the caption, so they have to be kept inside the
@@ -329,30 +364,120 @@
     applyPosition();
   }
 
+  // The player fades its own control bar away once nothing has happened for a
+  // while. The size controls are part of that same furniture, so they go when
+  // it goes. Reading the bar keeps the two in step whatever idle delay the
+  // player uses, which a wait of our own could not. The mechanism is not known,
+  // so every ordinary way of hiding a bar is covered: no box, moved off the
+  // player, or faded or hidden anywhere up the chain it hangs from.
+  function playerChromeHidden() {
+    let node = controlsEl;
+    if (!node || !node.isConnected) return false;
+    const box = node.getBoundingClientRect();
+    if (!box.width || !box.height) return true;
+    if (playerEl) {
+      const host = playerEl.getBoundingClientRect();
+      if (box.top >= host.bottom || box.bottom <= host.top) return true;
+    }
+    // No further than the player. Above that is the page, and a page that dims
+    // itself has nothing to say about the bar.
+    while (node && node !== document.body) {
+      const style = getComputedStyle(node);
+      if (style.visibility === 'hidden' || Number(style.opacity) < 0.1) return true;
+      if (node === playerEl) break;
+      node = node.parentElement;
+    }
+    return false;
+  }
+
+  // Anything done to the caption counts as keeping it up.
+  function noteActivity() {
+    lastActivityAt = performance.now();
+  }
+
+  // Nothing announces the bar going, because it goes precisely when nothing is
+  // happening. The look runs only while the controls are up, which is the only
+  // window where the answer changes anything. It also serves the wait the
+  // controls keep for themselves, so they clear off after a quiet spell even
+  // where the player leaves its own bar up.
+  function watchPlayerChrome() {
+    if (controlsActive && chromeTimer === null) {
+      chromeTimer = setInterval(() => {
+        if (pressingControl || dragging) return;
+        const quiet = performance.now() - lastActivityAt > IDLE_HIDE_MS;
+        if (quiet || playerChromeHidden()) setControlsActive(false);
+      }, CHROME_POLL_MS);
+    } else if (!controlsActive && chromeTimer !== null) {
+      clearInterval(chromeTimer);
+      chromeTimer = null;
+    }
+  }
+
   function setControlsActive(value) {
     if (controlsActive === value) return;
     controlsActive = value;
-    if (!controlsActive) heldSizerX = null;
+    if (!controlsActive) {
+      heldSizerX = null;
+      heldSizerSize = null;
+    }
     if (layerEl) layerEl.classList.toggle('is-active', controlsActive);
+    // Coming up starts the wait afresh. A caption that reshapes under a still
+    // pointer can bring the controls up without a pointer move, and they would
+    // otherwise be judged against a clock that stopped long ago.
+    if (controlsActive) noteActivity();
     positionSizers();
+    watchPlayerChrome();
+    refreshEngagement();
   }
 
-  // Distance from the pointer to the nearest edge of the caption, zero when it
-  // is over it. The controls wake on contact and stay awake anywhere within
-  // reach, so there is no edge to fall off on the way to one.
+  // Everything the pointer is allowed to be near: the caption, and the controls
+  // wherever they have actually ended up. Their sideways offset is frozen while
+  // they are awake, so a caption that shrinks under a still pointer leaves them
+  // hanging outside its box. Asking the boxes where they are is the only way to
+  // be sure the thing under the pointer counts as near it.
+  function controlsRegion(box) {
+    const region = { top: box.top, bottom: box.bottom, left: box.left, right: box.right };
+    for (const el of [smallerEl, largerEl]) {
+      if (!el) continue;
+      const own = el.getBoundingClientRect();
+      if (!own.width) continue;
+      region.top = Math.min(region.top, own.top);
+      region.bottom = Math.max(region.bottom, own.bottom);
+      region.left = Math.min(region.left, own.left);
+      region.right = Math.max(region.right, own.right);
+    }
+    return region;
+  }
+
+  // Waking asks for contact with the caption itself. Sleeping is measured
+  // against the whole region, with a little slack, so the slack is tolerance
+  // rather than cover for a part of the controls the caption cannot describe.
   function evaluateProximity() {
     proximityPending = false;
     if (!layerEl || !overlayEl || !captionsEnabled) return;
+    // A press or a drag already under way is never interrupted by the pointer
+    // wandering, the same way the look does not interrupt one. Taking a control
+    // away mid press loses the press with it, because what is released over is
+    // no longer the thing that was pressed.
+    if (pressingControl || dragging) return;
     const box = overlayEl.getBoundingClientRect();
     if (!box.width) {
       setControlsActive(false);
       return;
     }
-    const dx = Math.max(box.left - pointerX, 0, pointerX - box.right);
-    const dy = Math.max(box.top - pointerY, 0, pointerY - box.bottom);
-    const distance = Math.hypot(dx, dy);
-    if (distance === 0) setControlsActive(true);
-    else if (distance > Math.max(80, box.height * 2.4)) setControlsActive(false);
+    if (
+      pointerX >= box.left &&
+      pointerX <= box.right &&
+      pointerY >= box.top &&
+      pointerY <= box.bottom
+    ) {
+      setControlsActive(true);
+      return;
+    }
+    const region = controlsRegion(box);
+    const dx = Math.max(region.left - pointerX, 0, pointerX - region.right);
+    const dy = Math.max(region.top - pointerY, 0, pointerY - region.bottom);
+    if (Math.hypot(dx, dy) > PROXIMITY_SLACK) setControlsActive(false);
   }
 
   function scheduleProximity() {
@@ -372,6 +497,9 @@
     if (next === captionScale) return;
     captionScale = next;
     sizeChosen = true;
+    // A press that lands is what starts the wait again. At either end of the
+    // range there is no press to land, because the control is out of use.
+    noteActivity();
     applyScale();
     persistSetting(SIZE_KEY, captionScale);
   }
@@ -448,6 +576,10 @@
       // else.
       boxObserver = new ResizeObserver(() => {
         positionSizers();
+        // Nothing else asks again when the caption changes shape under a
+        // pointer that has not moved, and whether it is still near depends on
+        // the shape.
+        scheduleProximity();
         // A caption dragged near an edge and then made bigger, or simply handed
         // a longer line, would otherwise keep a place that no longer fits.
         reclampPosition();
@@ -483,12 +615,15 @@
     largerEl = null;
     controlsActive = false;
     heldSizerX = null;
+    heldSizerSize = null;
     dragging = false;
     dragPointerId = null;
     dragMoved = false;
     dragStart = null;
     controlPointerId = null;
     pressingControl = false;
+    controlsEngaged = false;
+    watchPlayerChrome();
   }
 
   function syncButtonState() {
@@ -587,6 +722,7 @@
     (event) => {
       pointerX = event.clientX;
       pointerY = event.clientY;
+      noteActivity();
       scheduleProximity();
     },
     { passive: true }

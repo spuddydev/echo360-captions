@@ -52,6 +52,12 @@
   display: none;
 }
 
+/* A gap in the speech while the controls are up. The caption gets out of the
+   way without taking them, or their place, with it. */
+.echo360-captions-layer.is-quiet .echo360-captions-overlay {
+  visibility: hidden;
+}
+
 .echo360-captions-layer.is-dragging .echo360-captions-overlay {
   cursor: grabbing;
 }
@@ -116,9 +122,10 @@
 }
 
 /* Quiet until the pointer comes near the caption, and reachable by keyboard
-   whether it is near or not. */
+   whether it is near or not. Focus counts only while the browser is showing it,
+   which a mouse press does not, so pressing one leaves nothing pinned up. */
 .echo360-captions-layer.is-active .echo360-captions-sizer,
-.echo360-captions-layer:focus-within .echo360-captions-sizer {
+.echo360-captions-layer:has(:focus-visible) .echo360-captions-sizer {
   opacity: 0.62;
   pointer-events: auto;
 }
@@ -143,7 +150,15 @@
   width: 58%;
 }
 
-.echo360-captions-sizer:hover {
+/* Only while they are up. A sleeping control is not hit testable, and some
+   engines keep the hover state on it until the pointer moves again, which would
+   leave it looking live while nothing can press it. Measured on this branch
+   before the controls were pinned: fully opaque and reported as hovered while
+   nothing could press it. Pinning them happens to invalidate the style and
+   clear the hover as a side effect, so this is what makes it right on purpose
+   rather than by accident. */
+.echo360-captions-layer.is-active .echo360-captions-sizer:hover,
+.echo360-captions-layer:has(:focus-visible) .echo360-captions-sizer:hover {
   background: rgba(0, 0, 0, 0.75);
   color: #fff;
   opacity: 1;
@@ -155,7 +170,7 @@
 }
 
 .echo360-captions-layer.is-active .echo360-captions-sizer[disabled],
-.echo360-captions-layer:focus-within .echo360-captions-sizer[disabled] {
+.echo360-captions-layer:has(:focus-visible) .echo360-captions-sizer[disabled] {
   cursor: default;
   opacity: 0.22;
 }
