@@ -45,7 +45,12 @@
   pointer-events: none;
   position: absolute;
   transform: translateX(-50%);
-  z-index: 2147483646;
+  /* Over the video, which is never positioned, but no higher than the player's
+     own furniture. Anything the player lifts above that stays in front: the
+     preview that follows the pointer along the timeline, the playhead and the
+     big play button. A caption sitting over the timeline would otherwise hide
+     the very frame a scrub is about to land on. */
+  z-index: 0;
 }
 
 .echo360-captions-layer.is-empty {

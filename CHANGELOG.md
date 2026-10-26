@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The preview that appears when you hover over the timeline now shows in front of the captions instead of behind them, so you can see where you are about to skip to wherever the captions sit.
+
 ## [0.4.1] - 2026-09-21
 
 ### Fixed
